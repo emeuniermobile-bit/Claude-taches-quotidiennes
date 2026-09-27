@@ -3,325 +3,350 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tâches">
 <title>Tâches du jour</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
+  /* Couleurs système iOS */
   :root {
-    --bg: #f7f4ee;
-    --surface: #ffffff;
-    --text: #141414;
-    --muted: #8c867b;
-    --line: rgba(20, 20, 20, .09);
-    --gold: #a8883f;
-    --gold-hi: #c9a962;
-    --gold-soft: rgba(168, 136, 63, .10);
-    --alert: #b0654a;
-    --on-gold: #ffffff;
-    --serif: "Cormorant Garamond", "Didot", Georgia, serif;
-    --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --fill: rgba(118, 118, 128, .12);
+    --label: #000000;
+    --label2: rgba(60, 60, 67, .6);
+    --label3: rgba(60, 60, 67, .3);
+    --sep: rgba(60, 60, 67, .18);
+    --bar: rgba(249, 249, 249, .8);
+    --blue: #007aff;
+    --green: #34c759;
+    --orange: #ff9500;
+    --red: #ff3b30;
+    --indigo: #5856d6;
+    --yellow: #ffcc00;
+    --teal: #30b0c7;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --rounded: ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0b0b0c;
-      --surface: #141416;
-      --text: #f4f1ea;
-      --muted: #8a857c;
-      --line: rgba(244, 241, 234, .08);
-      --gold: #c9a962;
-      --gold-hi: #e9d29a;
-      --gold-soft: rgba(201, 169, 98, .10);
-      --alert: #d08e72;
-      --on-gold: #0b0b0c;
+      --bg: #000000;
+      --card: #1c1c1e;
+      --fill: rgba(118, 118, 128, .24);
+      --label: #ffffff;
+      --label2: rgba(235, 235, 245, .6);
+      --label3: rgba(235, 235, 245, .3);
+      --sep: rgba(84, 84, 88, .6);
+      --bar: rgba(22, 22, 24, .78);
+      --blue: #0a84ff;
+      --green: #30d158;
+      --orange: #ff9f0a;
+      --red: #ff453a;
+      --indigo: #5e5ce6;
+      --yellow: #ffd60a;
+      --teal: #40c8e0;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  [hidden] { display: none !important; }
   html { background: var(--bg); }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 300 16px/1.5 var(--sans); letter-spacing: .01em;
-    padding: calc(env(safe-area-inset-top) + 8px) 24px calc(env(safe-area-inset-bottom) + 48px);
-    -webkit-font-smoothing: antialiased;
+    margin: 0; background: var(--bg); color: var(--label);
+    font: 17px/1.3 var(--font); letter-spacing: -.01em; -webkit-font-smoothing: antialiased;
+    padding: 0 16px calc(env(safe-area-inset-bottom) + 40px);
   }
-  main { max-width: 520px; margin: 0 auto; }
+  main { max-width: 600px; margin: 0 auto; }
   button { font: inherit; color: inherit; }
 
-  .eyebrow {
-    font: 500 11px/1 var(--sans); letter-spacing: .28em; text-transform: uppercase; color: var(--muted);
+  /* Barre de navigation floutée qui apparaît au défilement */
+  .navbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5;
+    padding: env(safe-area-inset-top) 16px 0; height: calc(env(safe-area-inset-top) + 44px);
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: .5px solid var(--sep); font-weight: 600; font-size: 17px;
+    opacity: 0; pointer-events: none; transition: opacity .2s;
   }
-  .gold { color: var(--gold); }
+  .navbar.show { opacity: 1; }
 
-  header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 8px; }
-  .brand { display: flex; align-items: center; gap: 12px; }
-  .brand svg { width: 34px; height: 34px; border-radius: 9px; }
-  .brand-name { font: 400 22px/1 var(--serif); letter-spacing: .02em; }
-  .level { text-align: right; }
-  .level b { display: block; font: 400 18px/1 var(--serif); color: var(--gold); margin-top: 6px; }
+  /* Grand titre */
+  .large-title { padding: calc(env(safe-area-inset-top) + 20px) 4px 8px; display: flex; align-items: flex-end; justify-content: space-between; }
+  .eyebrow-date { font-size: 13px; font-weight: 600; color: var(--label2); text-transform: uppercase; letter-spacing: .02em; }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: .01em; margin: 2px 0 0; line-height: 1.15; }
+  .level-pill {
+    display: flex; align-items: center; gap: 6px; background: var(--card); border-radius: 999px;
+    padding: 6px 12px 6px 8px; font-size: 15px; font-weight: 600; margin-bottom: 4px;
+  }
+  .level-pill i { width: 22px; height: 22px; border-radius: 50%; background: var(--indigo); color: #fff; font: 700 12px/22px var(--rounded); text-align: center; font-style: normal; }
 
-  /* Carte principale : compteurs en très grand */
-  .hero { text-align: center; padding: 36px 0 28px; }
-  .date { margin-bottom: 26px; }
-  .counts { display: flex; align-items: stretch; justify-content: center; }
-  .count { flex: 1; display: flex; flex-direction: column; align-items: center; }
-  .num {
-    font: 300 clamp(96px, 30vw, 136px)/.9 var(--serif); font-variant-numeric: lining-nums;
-    transition: color .4s;
-  }
-  .count.done .num { color: var(--gold); }
-  .count .eyebrow { margin-top: 14px; }
-  .vr { width: 1px; background: var(--line); margin: 8px 0 0; }
-  .hero.win .count.left .num { color: var(--muted); opacity: .45; }
-  .progress { height: 1px; background: var(--line); margin: 32px 0 26px; position: relative; }
-  .progress > div {
-    position: absolute; inset: 0 auto 0 0; width: 0;
-    background: linear-gradient(90deg, var(--gold), var(--gold-hi));
-    transition: width .6s cubic-bezier(.2,.7,.2,1);
-  }
-  .progress > div::after {
-    content: ""; position: absolute; right: -3px; top: -3px; width: 7px; height: 7px; border-radius: 50%;
-    background: var(--gold-hi); box-shadow: 0 0 12px var(--gold);
-  }
-  .msg { font: 400 italic 26px/1.2 var(--serif); margin: 0; }
-  .sub { color: var(--muted); font-size: 14px; margin: 10px 0 0; }
-  .hero.alert .sub { color: var(--alert); }
-  .hero.alert .progress > div { background: var(--alert); }
-  .hero.alert .progress > div::after { background: var(--alert); box-shadow: 0 0 12px var(--alert); }
-  .why {
-    font: 300 italic 18px/1.4 var(--serif); color: var(--muted); text-align: center;
-    margin: 0 0 30px; padding: 0 12px;
-  }
-  .why::before, .why::after { color: var(--gold); }
-  .why::before { content: "« "; } .why::after { content: " »"; }
+  .card { background: var(--card); border-radius: 14px; }
+  .section-title { display: flex; justify-content: space-between; align-items: baseline; margin: 30px 4px 8px; }
+  .section-title h2 { font-size: 22px; font-weight: 700; margin: 0; letter-spacing: .01em; }
+  .text-btn { background: none; border: 0; color: var(--blue); font-size: 17px; padding: 4px 0; cursor: pointer; }
+  .footer-note { font-size: 13px; color: var(--label2); margin: 8px 16px 0; line-height: 1.4; }
 
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .stat { text-align: center; padding: 18px 4px; }
-  .stat + .stat { border-left: 1px solid var(--line); }
-  .stat b { display: block; font: 400 34px/1 var(--serif); margin-bottom: 8px; }
+  /* Résumé du jour */
+  .summary { padding: 18px 18px 16px; margin-top: 10px; }
+  .summary-top { display: flex; align-items: center; gap: 20px; }
+  .ring { flex: none; width: 132px; height: 132px; position: relative; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 16; }
+  .ring .track { stroke: var(--green); opacity: .18; }
+  .ring .fg { stroke: url(#ringGrad); stroke-linecap: round; transition: stroke-dashoffset .7s cubic-bezier(.3,.7,.2,1); }
+  .ring-pct { position: absolute; inset: 0; display: grid; place-items: center; font: 700 26px var(--rounded); }
+  .metrics { flex: 1; display: grid; gap: 10px; }
+  .metric-label { font-size: 15px; font-weight: 600; }
+  .metric-value { font: 700 52px/1 var(--rounded); letter-spacing: -.02em; }
+  .metric-value small { font-size: 20px; font-weight: 600; color: var(--label2); margin-left: 2px; }
+  .m-left .metric-label, .m-left .metric-value { color: var(--orange); }
+  .m-done .metric-label, .m-done .metric-value { color: var(--green); }
+  .summary.win .m-left .metric-value, .summary.win .m-left .metric-label { color: var(--label3); }
+  .summary-msg { border-top: .5px solid var(--sep); margin-top: 16px; padding-top: 13px; display: flex; gap: 10px; align-items: flex-start; }
+  .summary-msg b { display: block; font-size: 17px; font-weight: 600; }
+  .summary-msg span { font-size: 15px; color: var(--label2); }
+  .summary.alert .summary-msg span { color: var(--orange); font-weight: 500; }
+  .why { text-align: center; color: var(--label2); font-size: 15px; font-style: italic; margin: 12px 16px 0; }
 
-  /* Sections */
-  section.block { margin-top: 48px; }
-  .block-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
-  .block-head .eyebrow { color: var(--gold); }
-  .link { background: none; border: 0; padding: 4px 0; cursor: pointer; }
-  .link.eyebrow { color: var(--muted); }
+  /* Faits marquants */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+  .stat { padding: 12px; }
+  .stat-head { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; }
+  .stat-head svg { width: 15px; height: 15px; }
+  .stat-val { font: 700 28px/1 var(--rounded); margin-top: 8px; }
+  .stat-val small { font-size: 14px; color: var(--label2); font-weight: 600; margin-left: 2px; }
 
-  /* Tâches */
-  ul { list-style: none; padding: 0; margin: 0; }
-  .task {
-    display: flex; align-items: center; gap: 18px; padding: 20px 2px;
-    border-bottom: 1px solid var(--line); cursor: pointer; user-select: none;
+  /* Listes groupées */
+  .list { list-style: none; margin: 0; padding: 0; overflow: hidden; }
+  .row {
+    display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 0 16px; position: relative;
   }
-  .task:first-child { border-top: 1px solid var(--line); }
+  .row + .row::before { content: ""; position: absolute; top: 0; right: 0; left: var(--inset, 16px); border-top: .5px solid var(--sep); }
+  .row-body { flex: 1; min-width: 0; padding: 12px 0; }
+  .row-sub { font-size: 13px; color: var(--label2); margin-top: 2px; }
+  .row.tap { cursor: pointer; }
+  .row.tap:active { background: var(--fill); }
+  .row .chev { color: var(--label3); font-size: 20px; }
+  .icon-tile { flex: none; width: 30px; height: 30px; border-radius: 7px; display: grid; place-items: center; color: #fff; }
+  .icon-tile svg { width: 18px; height: 18px; }
+
+  /* Tâches, style Rappels */
+  #list .row { --inset: 56px; min-height: 58px; cursor: pointer; user-select: none; }
+  #list .row:active { background: var(--fill); }
   .check {
-    flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold);
-    display: grid; place-items: center; transition: background .25s, transform .25s;
+    flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--label3);
+    display: grid; place-items: center; transition: background .2s, border-color .2s, transform .2s;
   }
-  .check svg { width: 15px; height: 15px; stroke: var(--on-gold); stroke-width: 2.4; fill: none; opacity: 0; }
-  .task.done .check { background: linear-gradient(135deg, var(--gold-hi), var(--gold)); border-color: transparent; }
-  .task.done .check svg { opacity: 1; }
-  .task.just .check { animation: pop .45s cubic-bezier(.2,.7,.2,1.4); }
-  @keyframes pop { 40% { transform: scale(1.18); } }
-  .task-main { flex: 1; min-width: 0; }
-  .task-name { font: 400 21px/1.25 var(--serif); word-break: break-word; transition: color .3s; }
-  .task.done .task-name { color: var(--muted); }
-  .task-meta { font-size: 12px; color: var(--muted); margin-top: 4px; letter-spacing: .04em; }
-  .task-meta .gold { font-weight: 400; }
+  .check svg { width: 14px; height: 14px; stroke: #fff; stroke-width: 3.2; fill: none; opacity: 0; transition: opacity .15s; }
+  .done .check { background: var(--green); border-color: var(--green); }
+  .done .check svg { opacity: 1; }
+  .just .check { animation: pop .35s cubic-bezier(.3,.7,.3,1.5); }
+  @keyframes pop { 50% { transform: scale(1.2); } }
+  .task-name { word-break: break-word; transition: color .2s; }
+  .done .task-name { color: var(--label2); }
+  .streak-tag { color: var(--orange); font-weight: 500; }
 
-  .edit-btns { display: none; gap: 2px; }
-  body.editing .edit-btns { display: flex; }
-  body.editing .check, body.editing .task-meta { display: none; }
-  body.editing .task { cursor: default; }
-  .icon-btn {
-    border: 0; background: none; color: var(--muted); width: 38px; height: 38px;
-    font-size: 17px; cursor: pointer; border-radius: 50%;
+  .del-btn, .up-btn { display: none; border: 0; background: none; padding: 0; cursor: pointer; }
+  .del-btn { width: 24px; height: 24px; border-radius: 50%; background: var(--red); color: #fff; font-weight: 700; line-height: 22px; font-size: 20px; }
+  .up-btn { color: var(--label3); font-size: 22px; width: 32px; height: 32px; }
+  .up-btn:disabled { opacity: .3; }
+  body.editing .del-btn, body.editing .up-btn { display: block; }
+  body.editing #list .check, body.editing #list .row-sub { display: none; }
+  body.editing #list .row { --inset: 52px; cursor: default; }
+  .add-row { display: none; }
+  body.editing .add-row { display: flex; }
+  .add-row .plus { width: 24px; height: 24px; border-radius: 50%; background: var(--green); color: #fff; font-weight: 600; font-size: 20px; line-height: 23px; text-align: center; flex: none; }
+  .row input[type=text] { flex: 1; min-width: 0; border: 0; background: none; font: inherit; color: var(--label); padding: 14px 0; outline: none; }
+  .row input::placeholder { color: var(--label3); }
+  .why-edit { display: none; margin-top: 10px; }
+  body.editing .why-edit { display: block; }
+  .empty { padding: 28px 16px; text-align: center; color: var(--label2); font-size: 15px; }
+
+  /* Contrôles */
+  input[type=time] {
+    border: 0; background: var(--fill); color: var(--label); font: 17px var(--font);
+    border-radius: 8px; padding: 6px 10px; min-width: 84px; text-align: center;
   }
-  .icon-btn:disabled { opacity: .25; }
-  .icon-btn.del { color: var(--alert); }
-  .empty { text-align: center; color: var(--muted); padding: 32px 8px; font: italic 18px var(--serif); }
+  .switch { appearance: none; -webkit-appearance: none; width: 51px; height: 31px; border-radius: 999px; background: var(--fill); position: relative; cursor: pointer; transition: background .25s; flex: none; margin: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.16); transition: transform .25s; }
+  .switch:checked { background: var(--green); }
+  .switch:checked::after { transform: translateX(20px); }
+  .row .blue { color: var(--blue); }
 
-  .edit-panel { display: none; margin-bottom: 18px; }
-  body.editing .edit-panel { display: block; }
-  .row { display: flex; gap: 10px; }
-  .field { flex: 1; min-width: 0; }
-  input[type=text], input[type=time] {
-    width: 100%; font: 300 16px var(--sans); color: var(--text); background: transparent;
-    border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 12px 0; outline: none;
-  }
-  input:focus { border-bottom-color: var(--gold); }
-  input::placeholder { color: var(--muted); }
-  label.eyebrow { display: block; margin: 22px 0 2px; }
+  /* Installation */
+  .install { padding: 14px 16px; margin-top: 12px; display: flex; gap: 14px; align-items: flex-start; }
+  .install img { width: 52px; height: 52px; border-radius: 12px; flex: none; }
+  .install b { font-size: 17px; }
+  .install ol { margin: 4px 0 0; padding-left: 18px; font-size: 14px; color: var(--label2); }
+  .install .x { margin-left: auto; background: var(--fill); border: 0; border-radius: 50%; width: 26px; height: 26px; color: var(--label2); font-size: 13px; cursor: pointer; flex: none; }
+  .install .pill { margin-top: 10px; background: var(--blue); color: #fff; border: 0; border-radius: 999px; padding: 7px 18px; font-weight: 600; cursor: pointer; }
 
-  .btn {
-    display: block; width: 100%; background: transparent; color: var(--gold);
-    border: 1px solid var(--gold); border-radius: 999px; padding: 15px 18px; cursor: pointer;
-    font: 500 11px/1 var(--sans); letter-spacing: .24em; text-transform: uppercase;
-    transition: background .2s, color .2s;
-  }
-  .btn:active { background: var(--gold); color: var(--on-gold); }
-  .btn.solid { background: linear-gradient(135deg, var(--gold-hi), var(--gold)); color: var(--on-gold); border-color: transparent; }
-  .btn.small { width: auto; padding: 12px 18px; }
-  .btn + .btn { margin-top: 10px; }
-  .note { color: var(--muted); font-size: 13px; margin: 12px 0 0; }
-  .status { color: var(--gold); font-size: 13px; margin: 12px 0 0; }
-
-  /* Bandeau d'installation */
-  .install { border: 1px solid var(--gold); border-radius: 18px; padding: 20px; margin-top: 12px; position: relative; }
-  .install .msg { font-size: 21px; }
-  .install ol { margin: 10px 0 0; padding-left: 18px; font-size: 14px; color: var(--muted); }
-  .install ol b { color: var(--text); font-weight: 400; }
-  .install .close { position: absolute; top: 10px; right: 10px; }
-
-  /* Niveau */
-  .lvl-name { font: 400 26px/1.1 var(--serif); }
-  .lvl-bar { height: 1px; background: var(--line); margin: 16px 0 10px; }
-  .lvl-bar > div { height: 1px; background: var(--gold); }
-
-  /* Trophées : médaillons */
-  .badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 8px; }
+  /* Niveau et trophées */
+  .level-card { padding: 14px 16px; }
+  .level-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .level-top b { font-size: 17px; }
+  .level-top span { font-size: 15px; color: var(--label2); }
+  .bar { height: 8px; border-radius: 99px; background: var(--fill); margin: 10px 0 8px; overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--indigo), var(--blue)); transition: width .6s; }
+  .badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px 6px; padding: 16px 10px; }
   .badge { text-align: center; }
   .medal {
-    width: 62px; height: 62px; margin: 0 auto 8px; border-radius: 50%;
-    border: 1px solid var(--gold); display: grid; place-items: center;
-    font: 400 22px/1 var(--serif); color: var(--gold); position: relative;
+    width: 58px; height: 58px; margin: 0 auto 6px; border-radius: 50%; display: grid; place-items: center;
+    font: 700 19px/1 var(--rounded); color: #fff; background: var(--c);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.12), inset 0 2px 0 rgba(255,255,255,.3);
   }
-  .medal::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; border: 1px solid var(--gold); opacity: .35; }
-  .badge.on .medal { background: var(--gold-soft); }
-  .badge .nm { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); line-height: 1.35; }
-  .badge.locked { opacity: .28; }
+  .medal svg { width: 26px; height: 26px; }
+  .badge .nm { font-size: 11px; color: var(--label2); line-height: 1.25; }
+  .badge.locked .medal { background: var(--fill); color: var(--label3); box-shadow: none; }
 
-  /* Historique */
-  .history { display: grid; grid-template-columns: repeat(10, 1fr); gap: 7px; }
-  .day { aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--line); }
-  .day.l1 { background: color-mix(in srgb, var(--gold) 25%, transparent); border-color: transparent; }
-  .day.l2 { background: color-mix(in srgb, var(--gold) 55%, transparent); border-color: transparent; }
-  .day.l3 { background: linear-gradient(135deg, var(--gold-hi), var(--gold)); border-color: transparent; }
-  .day.today { box-shadow: 0 0 0 1px var(--bg), 0 0 0 2px var(--gold); }
+  /* Historique : mini anneaux */
+  .history { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px 6px; padding: 14px 12px; }
+  .hday { text-align: center; font-size: 11px; color: var(--label2); }
+  .hday svg { width: 100%; max-width: 38px; display: block; margin: 0 auto 3px; transform: rotate(-90deg); }
+  .hday circle { fill: none; stroke-width: 6; }
+  .hday .t { stroke: var(--green); opacity: .18; }
+  .hday .f { stroke: var(--green); stroke-linecap: round; }
+  .hday.today { color: var(--blue); font-weight: 700; }
 
-  .toast {
-    position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 28px);
-    transform: translate(-50%, 30px); opacity: 0; pointer-events: none;
-    background: var(--text); color: var(--bg); padding: 13px 24px; border-radius: 999px;
-    font: 400 italic 18px/1.2 var(--serif); white-space: nowrap; z-index: 10;
-    transition: transform .4s cubic-bezier(.2,.7,.2,1), opacity .4s;
+  .hud {
+    position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 10px); z-index: 10;
+    transform: translate(-50%, -140%); transition: transform .45s cubic-bezier(.3,.8,.3,1.1);
+    background: var(--bar); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
+    border: .5px solid var(--sep); box-shadow: 0 8px 30px rgba(0,0,0,.12);
+    border-radius: 999px; padding: 10px 20px; font-size: 15px; font-weight: 600; white-space: nowrap;
   }
-  .toast.show { transform: translate(-50%, 0); opacity: 1; }
-  #dust { position: fixed; inset: 0; pointer-events: none; z-index: 9; }
-  footer { text-align: center; margin-top: 56px; }
+  .hud.show { transform: translate(-50%, 0); }
+  #confetti { position: fixed; inset: 0; pointer-events: none; z-index: 9; }
 </style>
 </head>
 <body>
-<canvas id="dust"></canvas>
-<div class="toast" id="toast"></div>
-<main>
-  <header>
-    <div class="brand">
-      <svg viewBox="0 0 512 512" aria-hidden="true">
-        <defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1DDA8"/><stop offset=".45" stop-color="#C9A962"/><stop offset="1" stop-color="#8A6A2F"/></linearGradient></defs>
-        <rect width="512" height="512" fill="#0b0b0c"/>
-        <circle cx="256" cy="256" r="148" fill="none" stroke="#C9A962" stroke-opacity=".18" stroke-width="14"/>
-        <circle cx="256" cy="256" r="148" fill="none" stroke="url(#lg)" stroke-width="16" stroke-linecap="round" stroke-dasharray="790 930" transform="rotate(-90 256 256)"/>
-        <path d="M196 262l42 42 82-92" fill="none" stroke="url(#lg)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span class="brand-name">Tâches du jour</span>
-    </div>
-    <div class="level"><span class="eyebrow">Niveau</span><b id="levelChip"></b></div>
-  </header>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a6f28b"/><stop offset="1" stop-color="#1fc24a"/></linearGradient>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c.6 3.2-1 5-2.5 6.7C8 10.3 7 12 7 14.3A5 5 0 0 0 12 19.5a5 5 0 0 0 5-5.2c0-2-1-3.6-2-4.8-.2 1.3-.9 2.3-2 2.8.6-3.4-.1-7.1-1-10.3Z"/><path fill="currentColor" opacity=".55" d="M12 22a7 7 0 0 1-7-7c0-1.2.3-2.3.8-3.3A6.6 6.6 0 0 0 12 21a6.6 6.6 0 0 0 6.2-9.3c.5 1 .8 2.1.8 3.3a7 7 0 0 1-7 7Z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path fill="currentColor" d="M7 3h10v2h3v2.5A4.5 4.5 0 0 1 16.3 12 5 5 0 0 1 13 14.8V17h3v3H8v-3h3v-2.2A5 5 0 0 1 7.7 12 4.5 4.5 0 0 1 4 7.5V5h3V3Zm0 4H6v.5c0 1 .5 1.9 1.3 2.4A7 7 0 0 1 7 8V7Zm10 0v1c0 .7-.1 1.3-.3 1.9.8-.5 1.3-1.4 1.3-2.4V7h-1Z"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path fill="currentColor" d="M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><path fill="currentColor" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1h1Zm2 0h6V7.5a3 3 0 0 0-6 0V10Z"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></g></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><path fill="currentColor" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2ZM5 9v10h14V9H5Z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l5 5h-3.5v6h-3V8H7l5-5Zm-7 13h2v3h10v-3h2v5H5v-5Z"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path fill="currentColor" d="M12 15l-5-5h3.5V4h3v6H17l-5 5Zm-7 1h2v3h10v-3h2v5H5v-5Z"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8L12 2.8Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  </defs>
+</svg>
+<canvas id="confetti"></canvas>
+<div class="hud" id="hud"></div>
+<div class="navbar" id="navbar">Aujourd'hui</div>
 
-  <div class="install" id="install" hidden>
-    <button class="icon-btn close" id="installClose" aria-label="Fermer">✕</button>
-    <p class="msg">Installe l'appli sur ton écran d'accueil</p>
-    <div id="installBody"></div>
+<main>
+  <div class="large-title" id="largeTitle">
+    <div>
+      <div class="eyebrow-date" id="date"></div>
+      <h1>Aujourd'hui</h1>
+    </div>
+    <div class="level-pill"><i id="levelNum">1</i><span id="levelPts">0 pts</span></div>
   </div>
 
-  <section class="hero" id="hero">
-    <div class="eyebrow date" id="date"></div>
-    <div class="counts">
-      <div class="count left"><span class="num" id="numLeft">0</span><span class="eyebrow">Restantes</span></div>
-      <div class="vr"></div>
-      <div class="count done"><span class="num" id="numDone">0</span><span class="eyebrow">Réalisées</span></div>
+  <div class="card install" id="install" hidden>
+    <img src="icon-180.png" alt="">
+    <div>
+      <b>Installer Tâches</b>
+      <div id="installBody"></div>
     </div>
-    <div class="progress"><div id="prog"></div></div>
-    <p class="msg" id="heroMsg"></p>
-    <p class="sub" id="heroSub"></p>
+    <button class="x" id="installClose" aria-label="Fermer">✕</button>
+  </div>
+
+  <section class="card summary" id="summary">
+    <div class="summary-top">
+      <div class="ring">
+        <svg viewBox="0 0 132 132"><circle class="track" cx="66" cy="66" r="56"/><circle class="fg" id="ringFg" cx="66" cy="66" r="56"/></svg>
+        <div class="ring-pct" id="ringPct">0%</div>
+      </div>
+      <div class="metrics">
+        <div class="m-left"><div class="metric-label">Restantes</div><div class="metric-value" id="numLeft">0</div></div>
+        <div class="m-done"><div class="metric-label">Réalisées</div><div class="metric-value"><span id="numDone">0</span><small id="numTotal">/0</small></div></div>
+      </div>
+    </div>
+    <div class="summary-msg">
+      <div><b id="heroMsg"></b><span id="heroSub"></span></div>
+    </div>
   </section>
   <p class="why" id="why" hidden></p>
 
   <div class="stats">
-    <div class="stat"><b id="stStreak">0</b><span class="eyebrow">Série</span></div>
-    <div class="stat"><b id="stBest">0</b><span class="eyebrow">Record</span></div>
-    <div class="stat"><b id="stWeek">0</b><span class="eyebrow">7 jours</span></div>
+    <div class="card stat"><div class="stat-head" style="color:var(--orange)"><svg><use href="#i-flame"/></svg>Série</div><div class="stat-val"><span id="stStreak">0</span><small>j</small></div></div>
+    <div class="card stat"><div class="stat-head" style="color:var(--yellow)"><svg><use href="#i-trophy"/></svg>Record</div><div class="stat-val"><span id="stBest">0</span><small>j</small></div></div>
+    <div class="card stat"><div class="stat-head" style="color:var(--blue)"><svg><use href="#i-chart"/></svg>7 jours</div><div class="stat-val"><span id="stWeek">0</span><small>%</small></div></div>
   </div>
 
-  <section class="block">
-    <div class="block-head">
-      <span class="eyebrow">Aujourd'hui</span>
-      <button class="link eyebrow" id="editToggle" type="button">Modifier</button>
+  <div class="section-title">
+    <h2>Tâches</h2>
+    <button class="text-btn" id="editToggle" type="button">Modifier</button>
+  </div>
+  <ul class="card list" id="list"></ul>
+  <form class="card list add-row-wrap" id="addForm" autocomplete="off" style="margin-top:0">
+  </form>
+  <div class="why-edit">
+    <div class="card list"><div class="row"><input type="text" id="whyInput" placeholder="Ma motivation (ex : être en forme)" maxlength="120"></div></div>
+    <p class="footer-note">Ta motivation s'affiche sous le résumé du jour.</p>
+  </div>
+
+  <div class="section-title"><h2>Rappels</h2></div>
+  <div class="card list">
+    <div class="row" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--blue)"><svg><use href="#i-lock"/></svg></span>
+      <div class="row-body">Écran verrouillé<div class="row-sub" id="lockSub">Tâches restantes en notification</div></div>
+      <input type="checkbox" class="switch" id="lockSwitch" role="switch" aria-label="Afficher sur l'écran verrouillé">
     </div>
-    <div class="edit-panel" id="editPanel">
-      <form class="row" id="addForm" autocomplete="off">
-        <input type="text" id="newTask" placeholder="Nouvelle tâche" maxlength="80">
-        <button class="btn solid small" type="submit">Ajouter</button>
-      </form>
-      <label class="eyebrow" for="whyInput">Ma motivation</label>
-      <input type="text" id="whyInput" placeholder="Ex : être en forme pour mes enfants" maxlength="120">
+    <div class="row" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--orange)"><svg><use href="#i-sun"/></svg></span>
+      <div class="row-body">Rappel du matin</div>
+      <input type="time" id="tMorning" value="08:00">
     </div>
-    <ul id="list"></ul>
-    <div class="empty" id="empty" hidden>Aucune tâche pour l'instant.<br>Touche « Modifier » pour en ajouter.</div>
-  </section>
-
-  <section class="block">
-    <div class="block-head"><span class="eyebrow">Écran verrouillé</span></div>
-    <p class="note" style="margin-top:0">Une notification permanente affiche le nombre de tâches restantes et réalisées sur l'écran verrouillé. Elle se met à jour dès que tu coches une tâche. La pastille de l'icône indique aussi les tâches restantes.</p>
-    <button class="btn" id="lockBtn" type="button" style="margin-top:16px">Afficher sur l'écran verrouillé</button>
-    <p class="status" id="lockStatus" hidden></p>
-  </section>
-
-  <section class="block">
-    <div class="block-head"><span class="eyebrow">Rappels quotidiens</span></div>
-    <div class="row">
-      <div class="field"><label class="eyebrow" for="tMorning" style="margin-top:0">Matin</label><input type="time" id="tMorning" value="08:00"></div>
-      <div class="field"><label class="eyebrow" for="tEvening" style="margin-top:0">Soir</label><input type="time" id="tEvening" value="20:30"></div>
+    <div class="row" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--indigo)"><svg><use href="#i-moon"/></svg></span>
+      <div class="row-body">Rappel du soir</div>
+      <input type="time" id="tEvening" value="20:30">
     </div>
-    <button class="btn" id="icsBtn" type="button" style="margin-top:22px">Ajouter à mon agenda</button>
-    <p class="note">Deux alarmes par jour dans ton agenda, visibles même téléphone verrouillé. Sur iPhone, fais-le depuis Safari.</p>
-  </section>
-
-  <section class="block">
-    <div class="block-head"><span class="eyebrow">Progression</span><span class="eyebrow" id="points"></span></div>
-    <div class="lvl-name" id="levelName"></div>
-    <div class="lvl-bar"><div id="levelBar"></div></div>
-    <p class="note" style="margin:0" id="levelNext"></p>
-  </section>
-
-  <section class="block">
-    <div class="block-head"><span class="eyebrow">Trophées</span><span class="eyebrow" id="badgeCount"></span></div>
-    <div class="badges" id="badges"></div>
-  </section>
-
-  <section class="block">
-    <div class="block-head"><span class="eyebrow">30 derniers jours</span></div>
-    <div class="history" id="history"></div>
-  </section>
-
-  <section class="block">
-    <div class="block-head"><span class="eyebrow">Sauvegarde</span></div>
-    <div class="row">
-      <button class="btn" id="exportBtn" type="button">Exporter</button>
-      <button class="btn" id="importBtn" type="button" style="margin-top:0">Importer</button>
+    <div class="row tap" id="icsBtn" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--red)"><svg><use href="#i-cal"/></svg></span>
+      <div class="row-body blue">Ajouter les rappels au Calendrier</div>
     </div>
-    <input type="file" id="importFile" accept="application/json" hidden>
-  </section>
+  </div>
+  <p class="footer-note">Les rappels sont ajoutés à ton calendrier et sonnent chaque jour, même téléphone verrouillé. Sur iPhone, fais-le depuis Safari. L'écran verrouillé affiche une notification mise à jour à chaque tâche cochée, et l'icône de l'appli porte une pastille avec le nombre de tâches restantes.</p>
 
-  <footer class="eyebrow">Un jour après l'autre</footer>
+  <div class="section-title"><h2>Progression</h2></div>
+  <div class="card level-card">
+    <div class="level-top"><b id="levelName"></b><span id="levelNext"></span></div>
+    <div class="bar"><div id="levelBar"></div></div>
+  </div>
+  <p class="footer-note">+10 points par tâche, +20 par journée complète, +5 par jour de série en cours.</p>
+
+  <div class="section-title"><h2>Trophées</h2><span class="footer-note" style="margin:0" id="badgeCount"></span></div>
+  <div class="card badges" id="badges"></div>
+
+  <div class="section-title"><h2>Historique</h2><span class="footer-note" style="margin:0">4 semaines</span></div>
+  <div class="card history" id="history"></div>
+
+  <div class="section-title"><h2>Données</h2></div>
+  <div class="card list">
+    <div class="row tap" id="exportBtn" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--teal)"><svg><use href="#i-up"/></svg></span>
+      <div class="row-body">Exporter une sauvegarde</div><span class="chev">›</span>
+    </div>
+    <div class="row tap" id="importBtn" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--green)"><svg><use href="#i-down"/></svg></span>
+      <div class="row-body">Importer une sauvegarde</div><span class="chev">›</span>
+    </div>
+  </div>
+  <p class="footer-note">Tes données restent sur ce téléphone.</p>
+  <input type="file" id="importFile" accept="application/json" hidden>
 </main>
 
 <script>
@@ -353,7 +378,6 @@
   }
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
-  const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
   let state = load();
   let today = dayKey();
@@ -405,7 +429,7 @@
 
   const LEVELS = [
     [0, 'Débutant'], [100, 'Motivé'], [300, 'Régulier'], [600, 'Appliqué'], [1000, 'Discipliné'],
-    [1600, 'Solide'], [2400, 'Inarrêtable'], [3500, 'Virtuose'], [5000, 'Maître'], [7000, 'Légende'],
+    [1600, 'Solide'], [2400, 'Inarrêtable'], [3500, 'Machine'], [5000, 'Maître'], [7000, 'Légende'],
   ];
   function levelOf(p) {
     let i = 0;
@@ -414,20 +438,21 @@
     return { n: i + 1, name: LEVELS[i][1], next: next ? next[0] : null, from: LEVELS[i][0] };
   }
 
-  // [id, texte du médaillon, libellé, condition]
+  // [id, contenu du médaillon, libellé, couleur, condition]
+  const icon = id => `<svg><use href="#${id}"/></svg>`;
   const BADGES = [
-    ['first', 'I', 'Première tâche', s => s.totalTasks >= 1],
-    ['day1', '✓', 'Journée parfaite', s => s.fullDays >= 1],
-    ['s3', '3', 'Jours de suite', s => s.best >= 3],
-    ['s7', '7', 'Jours de suite', s => s.best >= 7],
-    ['s14', '14', 'Jours de suite', s => s.best >= 14],
-    ['s30', '30', 'Jours de suite', s => s.best >= 30],
-    ['s100', '100', 'Jours de suite', s => s.best >= 100],
-    ['early', '10h', 'Tout fini avant 10 h', s => s.early],
-    ['t100', '100', 'Tâches', s => s.totalTasks >= 100],
-    ['t500', '500', 'Tâches', s => s.totalTasks >= 500],
-    ['f50', '50', 'Journées parfaites', s => s.fullDays >= 50],
-    ['f100', 'C', '100 journées parfaites', s => s.fullDays >= 100],
+    ['first', icon('i-check'), 'Première tâche', 'var(--green)', s => s.totalTasks >= 1],
+    ['day1', icon('i-star'), 'Journée parfaite', 'var(--yellow)', s => s.fullDays >= 1],
+    ['s3', '3', '3 jours de suite', 'var(--orange)', s => s.best >= 3],
+    ['s7', '7', '7 jours de suite', 'var(--orange)', s => s.best >= 7],
+    ['s14', '14', '14 jours de suite', 'var(--red)', s => s.best >= 14],
+    ['s30', '30', '30 jours de suite', 'var(--red)', s => s.best >= 30],
+    ['s100', '100', '100 jours de suite', 'var(--indigo)', s => s.best >= 100],
+    ['early', icon('i-sun'), 'Tout fini avant 10 h', 'var(--teal)', s => s.early],
+    ['t100', '100', '100 tâches', 'var(--blue)', s => s.totalTasks >= 100],
+    ['t500', '500', '500 tâches', 'var(--blue)', s => s.totalTasks >= 500],
+    ['f50', '50', '50 journées parfaites', 'var(--yellow)', s => s.fullDays >= 50],
+    ['f100', icon('i-trophy'), '100 journées parfaites', 'var(--indigo)', s => s.fullDays >= 100],
   ];
 
   // ---------- Affichage ----------
@@ -440,75 +465,74 @@
     list.innerHTML = state.tasks.map((t, i) => {
       const done = !!log[t.id];
       const ts = taskStreak(t.id);
-      const meta = [done ? `Fait à ${log[t.id]}` : '', ts >= 2 ? `<span class="gold">${ts} jours de suite</span>` : ''].filter(Boolean).join(' · ');
-      return `<li class="task${done ? ' done' : ''}${t.id === justChecked ? ' just' : ''}" data-id="${t.id}">
+      const sub = [done ? `Fait à ${log[t.id]}` : '', ts >= 2 ? `<span class="streak-tag">${ts} jours de suite</span>` : ''].filter(Boolean).join(' · ');
+      return `<li class="row${done ? ' done' : ''}${t.id === justChecked ? ' just' : ''}" data-id="${t.id}">
+        <button class="del-btn" data-act="del" aria-label="Supprimer">−</button>
         <span class="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
-        <div class="task-main"><div class="task-name">${escapeHtml(t.name)}</div>${meta ? `<div class="task-meta">${meta}</div>` : ''}</div>
-        <span class="edit-btns">
-          <button class="icon-btn" data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Monter">↑</button>
-          <button class="icon-btn" data-act="rename" aria-label="Renommer">✎</button>
-          <button class="icon-btn del" data-act="del" aria-label="Supprimer">✕</button>
-        </span>
+        <div class="row-body"><div class="task-name">${escapeHtml(t.name)}</div>${sub ? `<div class="row-sub">${sub}</div>` : ''}</div>
+        <button class="up-btn" data-act="up" ${i === 0 ? 'disabled' : ''} aria-label="Monter">↑</button>
       </li>`;
-    }).join('');
+    }).join('') + (state.tasks.length ? '' : '<li class="empty">Aucune tâche pour l\'instant.<br>Touche « Modifier » pour en ajouter.</li>');
     justChecked = null;
-    $('empty').hidden = state.tasks.length > 0;
 
     const total = state.tasks.length, done = doneCount(today), left = total - done;
     const streak = currentStreak(), s = stats();
 
+    const C = 2 * Math.PI * 56;
+    $('ringFg').style.strokeDasharray = C;
+    $('ringFg').style.strokeDashoffset = total ? C * (1 - done / total) : C;
+    $('ringPct').textContent = total ? Math.round(done / total * 100) + '%' : '–';
     $('numLeft').textContent = left;
     $('numDone').textContent = done;
-    $('prog').style.width = total ? (done / total * 100) + '%' : '0';
+    $('numTotal').textContent = '/' + total;
 
     // Message selon l'heure et l'avancement
     const hour = now.getHours();
     const minsLeft = 24 * 60 - (hour * 60 + now.getMinutes());
     const timeLeft = minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)} h ${pad(minsLeft % 60)}`;
     let msg, sub, cls = '';
-    if (!total) { msg = 'Compose ta journée.'; sub = 'Ajoute les tâches que tu veux accomplir chaque jour.'; }
+    if (!total) { msg = 'Crée ta liste'; sub = 'Ajoute les tâches à faire chaque jour.'; }
     else if (!left) {
       cls = 'win';
-      msg = pick(['Journée accomplie.', 'Tout est fait. Bravo.', 'Mission accomplie.', 'Rien ne t\'arrête.']);
-      sub = streak > 1 ? `Série de ${streak} jours. Reviens demain pour la prolonger.` : 'Reviens demain pour commencer une série.';
+      msg = pick(['Journée terminée !', 'Tout est fait, bravo !', 'Objectif atteint !']);
+      sub = streak > 1 ? `${streak} jours d'affilée. Reviens demain pour continuer.` : 'Reviens demain pour lancer une série.';
     } else if (hour >= 19) {
       cls = 'alert';
-      msg = streak > 0 ? `Ta série de ${plural(streak, 'jour')} est en jeu.` : 'La journée n\'est pas finie.';
-      sub = `Encore ${plural(left, 'tâche')}, il reste ${timeLeft} avant minuit.`;
+      msg = streak > 0 ? `Ta série de ${plural(streak, 'jour')} est en jeu` : 'La journée n\'est pas finie';
+      sub = `Encore ${plural(left, 'tâche')}. Il reste ${timeLeft} avant minuit.`;
     } else if (!done) {
-      msg = hour < 12 ? 'Une nouvelle journée commence.' : 'C\'est le moment de s\'y mettre.';
+      msg = hour < 12 ? 'Bonne journée !' : 'C\'est le moment de s\'y mettre';
       sub = 'Commence par la plus simple, le reste suivra.';
     } else {
-      msg = done / total >= .5 ? 'Plus de la moitié. Continue.' : 'Belle lancée.';
-      sub = `Plus que ${plural(left, 'tâche')} pour accomplir ta journée.`;
+      msg = done / total >= .5 ? 'Plus de la moitié, continue !' : 'Bien lancé !';
+      sub = `Plus que ${plural(left, 'tâche')} pour terminer la journée.`;
     }
-    $('hero').className = 'hero ' + cls;
+    $('summary').className = 'card summary ' + cls;
     $('heroMsg').textContent = msg;
     $('heroSub').textContent = sub;
     $('why').hidden = !state.why;
-    $('why').textContent = state.why;
+    $('why').textContent = state.why ? `« ${state.why} »` : '';
 
     $('stStreak').textContent = streak;
     $('stBest').textContent = s.best;
-    $('stWeek').textContent = s.week + '%';
+    $('stWeek').textContent = s.week;
 
     const lv = levelOf(s.points);
-    $('levelChip').textContent = ROMAN[lv.n - 1];
-    $('levelName').textContent = `Niveau ${ROMAN[lv.n - 1]} · ${lv.name}`;
-    $('points').textContent = `${s.points} pts`;
-    $('levelNext').textContent = lv.next ? `${lv.next - s.points} points avant le niveau suivant. +10 par tâche, +20 par journée complète, +5 par jour de série.` : 'Niveau maximum atteint.';
+    $('levelNum').textContent = lv.n;
+    $('levelPts').textContent = `${s.points} pts`;
+    $('levelName').textContent = `Niveau ${lv.n} · ${lv.name}`;
+    $('levelNext').textContent = lv.next ? `encore ${lv.next - s.points} pts` : 'Niveau max';
     $('levelBar').style.width = lv.next ? ((s.points - lv.from) / (lv.next - lv.from) * 100) + '%' : '100%';
 
-    const unlocked = BADGES.filter(b => b[3](s)).map(b => b[0]);
-    $('badgeCount').textContent = `${unlocked.length} / ${BADGES.length}`;
-    $('badges').innerHTML = BADGES.map(([id, mark, nm]) =>
-      `<div class="badge ${unlocked.includes(id) ? 'on' : 'locked'}"><div class="medal">${mark}</div><div class="nm">${nm}</div></div>`).join('');
+    const unlocked = BADGES.filter(b => b[4](s)).map(b => b[0]);
+    $('badgeCount').textContent = `${unlocked.length} sur ${BADGES.length}`;
+    $('badges').innerHTML = BADGES.map(([id, mark, nm, c]) =>
+      `<div class="badge${unlocked.includes(id) ? '' : ' locked'}"><div class="medal" style="--c:${c}">${mark}</div><div class="nm">${nm}</div></div>`).join('');
     if (state.seen === null) { state.seen = unlocked; save(); }
     const fresh = unlocked.filter(id => !state.seen.includes(id));
     if (fresh.length) {
       const b = BADGES.find(b => b[0] === fresh[0]);
-      const label = /^\d+$/.test(b[1]) ? `${b[1]} ${b[2].toLowerCase()}` : b[2];
-      setTimeout(() => toast(`Trophée · ${label}`), 900);
+      setTimeout(() => hud(`🏅 Trophée : ${b[2]}`), 900);
       state.seen.push(...fresh); save();
     }
 
@@ -521,11 +545,15 @@
 
   function renderHistory() {
     const cells = [];
-    for (let i = 29; i >= 0; i--) {
-      const d = addDays(new Date(), -i), k = dayKey(d);
-      const t = totalFor(k), ratio = t ? doneCount(k) / t : 0;
-      const lvl = ratio >= 1 ? 3 : ratio >= 0.5 ? 2 : ratio > 0 ? 1 : 0;
-      cells.push(`<div class="day l${lvl}${k === today ? ' today' : ''}" title="${d.toLocaleDateString('fr-FR')}"></div>`);
+    const C = 2 * Math.PI * 15;
+    // 4 semaines complètes, du lundi au dimanche, se terminant par la semaine en cours
+    const start = addDays(new Date(), -((new Date().getDay() + 6) % 7) - 21);
+    ['L', 'M', 'M', 'J', 'V', 'S', 'D'].forEach(l => cells.push(`<div class="hday" style="font-weight:600">${l}</div>`));
+    for (let i = 0; i < 28; i++) {
+      const d = addDays(start, i), k = dayKey(d);
+      if (k > today) { cells.push('<div class="hday"></div>'); continue; }
+      const t = totalFor(k), ratio = t ? Math.min(1, doneCount(k) / t) : 0;
+      cells.push(`<div class="hday${k === today ? ' today' : ''}"><svg viewBox="0 0 40 40"><circle class="t" cx="20" cy="20" r="15"/>${ratio ? `<circle class="f" cx="20" cy="20" r="15" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - ratio)}"/>` : ''}</svg>${d.getDate()}</div>`);
     }
     $('history').innerHTML = cells.join('');
   }
@@ -543,9 +571,9 @@
     const remaining = state.tasks.filter(t => !(state.log[today] || {})[t.id]).map(t => t.name);
     const title = !total ? 'Tâches du jour'
       : left ? `${plural(left, 'restante')} · ${plural(done, 'réalisée')}`
-      : `Journée accomplie · ${done}/${total}`;
+      : `✓ Journée terminée · ${done}/${total}`;
     const body = left ? remaining.join(' · ')
-      : streak > 1 ? `Série de ${streak} jours. À demain.` : 'Bravo. À demain.';
+      : streak > 1 ? `${streak} jours d'affilée. À demain !` : 'Bravo, à demain !';
     const key = today + title + body;
     if (key === lastLock) return;
     lastLock = key;
@@ -559,84 +587,82 @@
   }
   function renderLockUi() {
     const supported = 'Notification' in window && 'serviceWorker' in navigator;
-    const btn = $('lockBtn'), st = $('lockStatus');
-    st.hidden = false;
+    const sw = $('lockSwitch'), sub = $('lockSub');
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     if (!supported) {
-      btn.hidden = true;
-      const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      st.textContent = ios ? 'Installe d\'abord l\'appli sur l\'écran d\'accueil, puis rouvre-la depuis son icône.' : 'Ce navigateur ne permet pas les notifications.';
-    } else if (state.lock && Notification.permission === 'granted') {
-      btn.textContent = 'Désactiver l\'écran verrouillé';
-      st.textContent = 'Activé. Tes tâches s\'affichent sur l\'écran verrouillé.';
+      sw.disabled = true; sw.checked = false;
+      sub.textContent = ios ? 'Installe d\'abord l\'appli sur l\'écran d\'accueil' : 'Non disponible sur ce navigateur';
     } else if (Notification.permission === 'denied') {
-      btn.hidden = true;
-      st.textContent = 'Notifications refusées : autorise-les pour cette appli dans les réglages du téléphone.';
+      sw.disabled = true; sw.checked = false;
+      sub.textContent = 'Notifications refusées dans les réglages';
     } else {
-      btn.textContent = 'Afficher sur l\'écran verrouillé';
-      st.hidden = true;
+      sw.checked = state.lock && Notification.permission === 'granted';
+      sub.textContent = sw.checked ? 'Activé' : 'Tâches restantes en notification';
     }
   }
-  $('lockBtn').addEventListener('click', async () => {
-    if (state.lock && Notification.permission === 'granted') {
-      state.lock = false; save();
-      const reg = await navigator.serviceWorker.ready;
-      (await reg.getNotifications({ tag: 'progression' })).forEach(n => n.close());
-    } else {
+  $('lockSwitch').addEventListener('change', async e => {
+    if (e.target.checked) {
       const perm = await Notification.requestPermission();
-      state.lock = perm === 'granted'; save();
+      state.lock = perm === 'granted';
       lastLock = '';
+    } else {
+      state.lock = false;
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        (await reg.getNotifications({ tag: 'progression' })).forEach(n => n.close());
+      } catch (err) {}
     }
-    renderLockUi(); render();
+    save(); renderLockUi(); render();
   });
 
-  function toast(text) {
-    const t = $('toast');
+  function hud(text) {
+    const t = $('hud');
     t.textContent = text;
     t.classList.add('show');
-    clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => t.classList.remove('show'), 2600);
+    clearTimeout(hud.timer);
+    hud.timer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
-  // ---------- Poussière d'or quand la journée est accomplie ----------
-  function goldDust() {
-    const cv = $('dust'), ctx = cv.getContext('2d');
+  // ---------- Confettis quand la journée est terminée ----------
+  function confetti() {
+    const cv = $('confetti'), ctx = cv.getContext('2d');
     const dpr = window.devicePixelRatio || 1, W = innerWidth, H = innerHeight;
     cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const colors = ['#F1DDA8', '#E9D29A', '#C9A962', '#A8883F', '#FFF6DF'];
-    const parts = Array.from({ length: 110 }, () => {
-      const a = Math.random() * Math.PI * 2, v = Math.random() * 7 + 2;
-      return { x: W / 2, y: H * .28, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 3,
-        r: Math.random() * 2.4 + .8, c: pick(colors), tw: Math.random() * Math.PI * 2 };
-    });
+    const colors = ['#34c759', '#007aff', '#ff9500', '#ff2d55', '#5856d6', '#ffcc00', '#30b0c7'];
+    const parts = Array.from({ length: 150 }, () => ({
+      x: W / 2 + (Math.random() - .5) * 80, y: H * .3,
+      vx: (Math.random() - .5) * 15, vy: Math.random() * -15 - 4,
+      w: Math.random() * 6 + 5, h: Math.random() * 4 + 3,
+      r: Math.random() * 6, vr: (Math.random() - .5) * .35, c: pick(colors),
+    }));
     const start = performance.now();
     (function frame(t) {
-      const age = (t - start) / 3200;
       ctx.clearRect(0, 0, W, H);
       parts.forEach(p => {
-        p.vy += .08; p.vx *= .985; p.vy *= .985; p.x += p.vx; p.y += p.vy; p.tw += .2;
-        ctx.globalAlpha = Math.max(0, 1 - age) * (.6 + .4 * Math.sin(p.tw));
-        ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+        p.vy += .38; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r);
+        ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h * Math.abs(Math.cos(p.r * 2)) + 1);
+        ctx.restore();
       });
-      if (age < 1) requestAnimationFrame(frame); else ctx.clearRect(0, 0, W, H);
+      if (t - start < 3500) requestAnimationFrame(frame); else ctx.clearRect(0, 0, W, H);
     })(start);
   }
 
   // ---------- Interactions ----------
   list.addEventListener('click', e => {
-    const li = e.target.closest('.task');
-    if (!li) return;
+    const li = e.target.closest('.row');
+    if (!li || !li.dataset.id) return;
     const id = li.dataset.id;
     const btn = e.target.closest('button');
 
     if (document.body.classList.contains('editing')) {
-      if (!btn) return;
       const idx = state.tasks.findIndex(t => t.id === id);
-      const act = btn.dataset.act;
+      const act = btn ? btn.dataset.act : 'rename';
       if (act === 'del' && confirm(`Supprimer « ${state.tasks[idx].name} » ?`)) {
         state.tasks.splice(idx, 1);
         if (state.log[today]) delete state.log[today][id];
       } else if (act === 'rename') {
-        const name = prompt('Nouveau nom :', state.tasks[idx].name);
+        const name = prompt('Renommer la tâche :', state.tasks[idx].name);
         if (name && name.trim()) state.tasks[idx].name = name.trim();
       } else if (act === 'up' && idx > 0) {
         [state.tasks[idx - 1], state.tasks[idx]] = [state.tasks[idx], state.tasks[idx - 1]];
@@ -656,19 +682,25 @@
     justChecked = id;
     save(); render();
     if (complete(today)) {
-      if (navigator.vibrate) navigator.vibrate([20, 70, 20, 70, 60]);
-      goldDust();
+      if (navigator.vibrate) navigator.vibrate([25, 60, 25, 60, 70]);
+      confetti();
       const st = currentStreak();
-      toast(st > 1 ? `${st} jours d'affilée` : 'Journée accomplie');
+      hud(st > 1 ? `🔥 ${st} jours d'affilée !` : '🎉 Journée terminée !');
     } else {
-      if (navigator.vibrate) navigator.vibrate(12);
-      toast(pick(['+10 points', 'Une de moins', 'Bien joué', 'Continue ainsi']));
+      if (navigator.vibrate) navigator.vibrate(10);
+      hud(pick(['+10 points', 'Une de moins !', 'Bien joué !', 'Continue comme ça !']));
     }
   });
 
+  // Formulaire d'ajout (visible en mode Modifier)
+  $('addForm').innerHTML = '<div class="row add-row"><span class="plus">+</span><input type="text" id="newTask" placeholder="Nouvelle tâche" maxlength="80" enterkeyhint="done"></div>';
+  $('addForm').style.display = 'none';
   $('editToggle').addEventListener('click', () => {
     const editing = document.body.classList.toggle('editing');
-    $('editToggle').textContent = editing ? 'Terminé' : 'Modifier';
+    $('editToggle').textContent = editing ? 'OK' : 'Modifier';
+    $('editToggle').style.fontWeight = editing ? '600' : '';
+    $('addForm').style.display = editing ? '' : 'none';
+    $('addForm').style.marginTop = editing ? '10px' : '0';
     $('whyInput').value = state.why;
   });
   $('addForm').addEventListener('submit', e => {
@@ -681,7 +713,7 @@
   });
   $('whyInput').addEventListener('input', e => { state.why = e.target.value.trim(); save(); render(); });
 
-  // ---------- Rappels dans l'agenda (.ics) ----------
+  // ---------- Rappels dans le calendrier (.ics) ----------
   $('tMorning').value = state.reminders.morning;
   $('tEvening').value = state.reminders.evening;
   ['tMorning', 'tEvening'].forEach(id => $(id).addEventListener('change', () => {
@@ -710,8 +742,8 @@
   $('icsBtn').addEventListener('click', () => {
     const lines = [
       'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Taches du jour//FR', 'CALSCALE:GREGORIAN',
-      ...icsEvent('matin', $('tMorning').value, 'Tâches du jour', 'Une nouvelle journée commence. Ouvre l\'appli et commence par la plus simple.'),
-      ...icsEvent('soir', $('tEvening').value, 'Ne casse pas ta série', 'As-tu accompli toutes tes tâches aujourd\'hui ?'),
+      ...icsEvent('matin', $('tMorning').value, '✅ Mes tâches du jour', 'Bonne journée ! Ouvre l\'appli et commence par la plus simple.'),
+      ...icsEvent('soir', $('tEvening').value, '🔥 Ne casse pas ta série', 'As-tu fait toutes tes tâches aujourd\'hui ?'),
       'END:VCALENDAR',
     ];
     const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
@@ -731,12 +763,12 @@
     if (standalone || dismissed) return;
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
     if (ios) {
-      $('installBody').innerHTML = '<ol><li>Ouvre cette page dans <b>Safari</b></li><li>Touche <b>Partager</b> (carré avec une flèche ↑)</li><li>Choisis <b>Sur l\'écran d\'accueil</b></li></ol>';
+      $('installBody').innerHTML = '<ol><li>Ouvre cette page dans Safari</li><li>Touche Partager (carré avec une flèche)</li><li>Choisis « Sur l\'écran d\'accueil »</li></ol>';
     } else if (installEvt) {
-      $('installBody').innerHTML = '<button class="btn solid" id="installBtn" style="margin-top:14px">Installer</button>';
+      $('installBody').innerHTML = '<button class="pill" id="installBtn">Installer</button>';
       $('installBtn').onclick = async () => { installEvt.prompt(); await installEvt.userChoice; $('install').hidden = true; };
     } else {
-      $('installBody').innerHTML = '<ol><li>Ouvre le menu <b>⋮</b> de Chrome</li><li>Choisis <b>Installer l\'application</b></li></ol>';
+      $('installBody').innerHTML = '<ol><li>Ouvre le menu ⋮ de Chrome</li><li>Choisis « Installer l\'application »</li></ol>';
     }
     $('install').hidden = false;
   }
@@ -771,6 +803,11 @@
     }
     e.target.value = '';
   });
+
+  // Barre de navigation compacte quand le grand titre sort de l'écran
+  addEventListener('scroll', () => {
+    $('navbar').classList.toggle('show', scrollY > $('largeTitle').offsetHeight - 10);
+  }, { passive: true });
 
   // Nouveau jour / mise à jour du message quand l'appli revient au premier plan
   function refresh() { today = dayKey(); render(); }
