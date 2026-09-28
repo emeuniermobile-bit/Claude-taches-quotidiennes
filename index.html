@@ -212,6 +212,30 @@
   .hday .f { stroke: var(--green); stroke-linecap: round; }
   .hday.today { color: var(--blue); font-weight: 700; }
 
+  /* Écran verrouillé */
+  .lock-card { padding: 18px 16px 14px; }
+  .phone {
+    position: relative; width: 190px; margin: 0 auto; aspect-ratio: 1179 / 2556; border-radius: 30px;
+    overflow: hidden; background: #111; box-shadow: 0 0 0 6px #1c1c1e, 0 0 0 7px rgba(128,128,128,.35), 0 18px 40px rgba(0,0,0,.25);
+  }
+  .phone img { width: 100%; height: 100%; display: block; }
+  .phone-clock { position: absolute; left: 0; right: 0; top: 11%; text-align: center; color: #fff; }
+  .phone-clock span { display: block; font-size: 9px; font-weight: 600; opacity: .85; text-transform: capitalize; }
+  .phone-clock b { display: block; font: 700 46px/1 var(--rounded); letter-spacing: -.02em; }
+  .phone.light .phone-clock { color: #1c1c1e; }
+  .phone::before { content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 56px; height: 16px; border-radius: 99px; background: #000; z-index: 1; }
+  .themes { display: flex; justify-content: center; gap: 14px; margin-top: 22px; }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(128,128,128,.3); }
+  .swatch.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--blue); }
+  .status-ok { color: var(--green); }
+  .status-old { color: var(--orange); }
+  .setup { padding: 4px 16px 14px; margin-top: 10px; }
+  .setup ol { margin: 0; padding-left: 20px; }
+  .setup li { padding: 9px 0; border-bottom: .5px solid var(--sep); font-size: 15px; line-height: 1.4; }
+  .setup li:last-child { border-bottom: 0; }
+  .setup h3 { font-size: 15px; margin: 12px 0 2px; }
+  .setup .muted { color: var(--label2); font-size: 13px; }
+
   .hud {
     position: fixed; left: 50%; top: calc(env(safe-area-inset-top) + 10px); z-index: 10;
     transform: translate(-50%, -140%); transition: transform .45s cubic-bezier(.3,.8,.3,1.1);
@@ -235,6 +259,8 @@
     <symbol id="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></symbol>
     <symbol id="i-cal" viewBox="0 0 24 24"><path fill="currentColor" d="M7 2h2v2h6V2h2v2h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2V2ZM5 9v10h14V9H5Z"/></symbol>
     <symbol id="i-up" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3l5 5h-3.5v6h-3V8H7l5-5Zm-7 13h2v3h10v-3h2v5H5v-5Z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 2 5 13.5h6L10 22l9-12h-6l.5-8Z"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 14a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Zm.1-10.2c-2.2 0-3.7 1.3-3.9 3.3h2.3c.1-.8.7-1.3 1.5-1.3s1.4.5 1.4 1.2c0 .6-.3 1-1.2 1.6-1 .6-1.4 1.3-1.4 2.4v.6h2.2v-.4c0-.6.3-1 1.2-1.5 1-.6 1.6-1.4 1.6-2.6 0-1.9-1.5-3.3-3.7-3.3Z"/></symbol>
     <symbol id="i-down" viewBox="0 0 24 24"><path fill="currentColor" d="M12 15l-5-5h3.5V4h3v6H17l-5 5Zm-7 1h2v3h10v-3h2v5H5v-5Z"/></symbol>
     <symbol id="i-star" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8L12 2.8Z"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
@@ -297,29 +323,45 @@
     <p class="footer-note">Ta motivation s'affiche sous le résumé du jour.</p>
   </div>
 
-  <div class="section-title"><h2>Rappels</h2></div>
-  <div class="card list">
-    <div class="row" style="--inset:58px">
+  <div class="section-title"><h2>Écran verrouillé</h2></div>
+  <div class="card lock-card">
+    <div class="phone" id="phone">
+      <img id="wpPreview" alt="Aperçu de l'écran verrouillé">
+      <div class="phone-clock"><span id="pvDate"></span><b id="pvTime"></b></div>
+    </div>
+    <div class="themes" id="themes"></div>
+  </div>
+  <div class="card list" style="margin-top:10px">
+    <div class="row tap" id="wpUpdate" style="--inset:58px">
       <span class="icon-tile" style="background:var(--blue)"><svg><use href="#i-lock"/></svg></span>
-      <div class="row-body">Écran verrouillé<div class="row-sub" id="lockSub">Tâches restantes en notification</div></div>
-      <input type="checkbox" class="switch" id="lockSwitch" role="switch" aria-label="Afficher sur l'écran verrouillé">
+      <div class="row-body"><span class="blue">Mettre à jour l'écran verrouillé</span><div class="row-sub" id="wpStatus"></div></div>
     </div>
     <div class="row" style="--inset:58px">
-      <span class="icon-tile" style="background:var(--orange)"><svg><use href="#i-sun"/></svg></span>
-      <div class="row-body">Rappel du matin</div>
-      <input type="time" id="tMorning" value="08:00">
+      <span class="icon-tile" style="background:var(--orange)"><svg><use href="#i-bolt"/></svg></span>
+      <div class="row-body">Mise à jour automatique<div class="row-sub">À chaque tâche cochée</div></div>
+      <input type="checkbox" class="switch" id="wpAuto" role="switch" aria-label="Mise à jour automatique">
     </div>
-    <div class="row" style="--inset:58px">
-      <span class="icon-tile" style="background:var(--indigo)"><svg><use href="#i-moon"/></svg></span>
-      <div class="row-body">Rappel du soir</div>
-      <input type="time" id="tEvening" value="20:30">
+    <div class="row tap" id="wpSave" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--teal)"><svg><use href="#i-down"/></svg></span>
+      <div class="row-body">Enregistrer l'image</div><span class="chev">›</span>
     </div>
-    <div class="row tap" id="icsBtn" style="--inset:58px">
-      <span class="icon-tile" style="background:var(--red)"><svg><use href="#i-cal"/></svg></span>
-      <div class="row-body blue">Ajouter les rappels au Calendrier</div>
+    <div class="row tap" id="wpHelpBtn" style="--inset:58px">
+      <span class="icon-tile" style="background:var(--indigo)"><svg><use href="#i-help"/></svg></span>
+      <div class="row-body">Configurer (une seule fois)</div><span class="chev" id="wpHelpChev">›</span>
     </div>
   </div>
-  <p class="footer-note">Les rappels sont ajoutés à ton calendrier et sonnent chaque jour, même téléphone verrouillé. Sur iPhone, fais-le depuis Safari. L'écran verrouillé affiche une notification mise à jour à chaque tâche cochée, et l'icône de l'appli porte une pastille avec le nombre de tâches restantes.</p>
+  <div class="card setup" id="wpHelp" hidden>
+    <h3>Sur iPhone, avec l'app Raccourcis</h3>
+    <ol>
+      <li>Ouvre l'app <b>Raccourcis</b>, puis touche <b>+</b> pour créer un raccourci.</li>
+      <li>Ajoute l'action <b>Obtenir le presse-papiers</b>.</li>
+      <li>Ajoute l'action <b>Définir le fond d'écran</b>. Choisis ton fond d'écran, coche seulement <b>Écran verrouillé</b>, puis touche la flèche et désactive <b>Afficher l'aperçu</b>.</li>
+      <li>Renomme le raccourci exactement <b>Écran Tâches</b>.</li>
+      <li>Reviens ici et touche <b>Mettre à jour l'écran verrouillé</b>. La première fois, autorise l'accès au presse-papiers (« Toujours autoriser »).</li>
+    </ol>
+    <p class="muted">Astuce : le fond d'écran choisi doit être une photo, sans « effet de profondeur ». Sur Android, utilise « Enregistrer l'image » puis définis-la comme fond d'écran de verrouillage.</p>
+  </div>
+  <p class="footer-note">L'appli dessine un fond d'écran avec un grand bandeau de tes tâches (faites et à faire). Le raccourci l'applique à l'écran verrouillé.</p>
 
   <div class="section-title"><h2>Progression</h2></div>
   <div class="card level-card">
@@ -354,7 +396,8 @@
   const DEFAULT_TASKS = ['Boire 1,5 L d\'eau', 'Faire 20 min de sport', 'Lire 15 minutes'];
 
   // Etat : tasks [{id, name}], log { 'AAAA-MM-JJ': { taskId: 'HH:MM' } },
-  // totals { jour: nb de tâches ce jour-là }, seen [trophées annoncés], why, reminders, lock
+  // totals { jour: nb de tâches ce jour-là }, seen [trophées annoncés], why,
+  // wpTheme / wpAuto / wpKey : fond d'écran de verrouillage
   function load() {
     let s = null;
     try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
@@ -362,8 +405,8 @@
     s.totals = s.totals || {};
     s.seen = s.seen || null; // null = premier lancement, on n'annonce pas les anciens trophées
     s.why = s.why || '';
-    s.reminders = s.reminders || { morning: '08:00', evening: '20:30' };
-    s.lock = !!s.lock;
+    s.wpTheme = s.wpTheme || 'nuit';
+    s.wpAuto = !!s.wpAuto;
     return s;
   }
   function save() {
@@ -540,7 +583,7 @@
 
     document.title = left > 0 ? `(${left}) Tâches du jour` : 'Tâches du jour ✓';
     updateBadge(left);
-    updateLockScreen({ left, done, total, streak });
+    updateWallpaperUi();
   }
 
   function renderHistory() {
@@ -558,61 +601,170 @@
     $('history').innerHTML = cells.join('');
   }
 
-  // ---------- Pastille de l'icône et écran verrouillé ----------
+  // ---------- Pastille de l'icône ----------
   function updateBadge(left) {
     if (!('setAppBadge' in navigator)) return;
     (left > 0 ? navigator.setAppBadge(left) : navigator.clearAppBadge()).catch(() => {});
   }
 
-  // Notification permanente (même "tag" = remplacée à chaque mise à jour)
-  let lastLock = '';
-  async function updateLockScreen({ left, done, total, streak }) {
-    if (!state.lock || !('Notification' in window) || Notification.permission !== 'granted') return;
-    const remaining = state.tasks.filter(t => !(state.log[today] || {})[t.id]).map(t => t.name);
-    const title = !total ? 'Tâches du jour'
-      : left ? `${plural(left, 'restante')} · ${plural(done, 'réalisée')}`
-      : `✓ Journée terminée · ${done}/${total}`;
-    const body = left ? remaining.join(' · ')
-      : streak > 1 ? `${streak} jours d'affilée. À demain !` : 'Bravo, à demain !';
-    const key = today + title + body;
-    if (key === lastLock) return;
-    lastLock = key;
-    try {
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification(title, {
-        body, tag: 'progression', renotify: false, silent: true, requireInteraction: true,
-        icon: 'icon-192.png', badge: 'icon-192.png', data: { url: location.href.split('#')[0] },
-      });
-    } catch (e) {}
+  // ---------- Fond d'écran de verrouillage avec le bandeau des tâches ----------
+  const SHORTCUT = 'Écran Tâches';
+  const THEMES = {
+    nuit:   { bg: ['#2b2d6e', '#0c0c1d'], glow: ['#5e5ce6', '#bf5af2'], light: false },
+    ocean:  { bg: ['#1a8cff', '#0b2f7a'], glow: ['#64d2ff', '#5e5ce6'], light: false },
+    foret:  { bg: ['#2f9e5b', '#0b3326'], glow: ['#30d158', '#64d2ff'], light: false },
+    aurore: { bg: ['#ff8a5b', '#b0306e'], glow: ['#ffd60a', '#ff375f'], light: false },
+    sable:  { bg: ['#f6ece0', '#dcc7ae'], glow: ['#ffffff', '#ffb38a'], light: true },
+    noir:   { bg: ['#1c1c1e', '#000000'], glow: ['#3a3a3c', '#1c1c1e'], light: false },
+  };
+  function wallpaperSize() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.round(screen.width * dpr), h = Math.round(screen.height * dpr);
+    // Ecran de téléphone en portrait, sinon taille d'un iPhone récent
+    return w < h && w >= 600 ? [w, h] : [1179, 2556];
   }
-  function renderLockUi() {
-    const supported = 'Notification' in window && 'serviceWorker' in navigator;
-    const sw = $('lockSwitch'), sub = $('lockSub');
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-    if (!supported) {
-      sw.disabled = true; sw.checked = false;
-      sub.textContent = ios ? 'Installe d\'abord l\'appli sur l\'écran d\'accueil' : 'Non disponible sur ce navigateur';
-    } else if (Notification.permission === 'denied') {
-      sw.disabled = true; sw.checked = false;
-      sub.textContent = 'Notifications refusées dans les réglages';
-    } else {
-      sw.checked = state.lock && Notification.permission === 'granted';
-      sub.textContent = sw.checked ? 'Activé' : 'Tâches restantes en notification';
-    }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
   }
-  $('lockSwitch').addEventListener('change', async e => {
-    if (e.target.checked) {
-      const perm = await Notification.requestPermission();
-      state.lock = perm === 'granted';
-      lastLock = '';
-    } else {
-      state.lock = false;
-      try {
-        const reg = await navigator.serviceWorker.ready;
-        (await reg.getNotifications({ tag: 'progression' })).forEach(n => n.close());
-      } catch (err) {}
+  function fitText(ctx, text, maxW) {
+    if (ctx.measureText(text).width <= maxW) return text;
+    while (text.length > 1 && ctx.measureText(text + '…').width > maxW) text = text.slice(0, -1);
+    return text + '…';
+  }
+  function drawWallpaper() {
+    const [W, H] = wallpaperSize();
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    const k = W / 1179; // toutes les mesures sont pensées pour 1179 px de large
+    const th = THEMES[state.wpTheme] || THEMES.nuit;
+    const ink = th.light ? '28,28,30' : '255,255,255';
+    const font = (wt, px) => `${wt} ${px * k}px -apple-system, "SF Pro Display", "Helvetica Neue", Roboto, sans-serif`;
+
+    // Fond : dégradé et halos de couleur
+    const g = ctx.createLinearGradient(0, 0, W * .3, H); g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    [[.15, .18, th.glow[0]], [.9, .55, th.glow[1]], [.2, .92, th.glow[0]]].forEach(([x, y, c]) => {
+      const r = ctx.createRadialGradient(W * x, H * y, 0, W * x, H * y, W * .75);
+      r.addColorStop(0, c + '88'); r.addColorStop(1, c + '00');
+      ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
+    });
+
+    // Bandeau : sous l'horloge, au-dessus des boutons du bas
+    const tasks = state.tasks, log = state.log[today] || {};
+    const done = doneCount(today), total = tasks.length, left = total - done;
+    const x = 64 * k, w = W - 128 * k, top = H * .385, maxBottom = H - 330 * k;
+    const headH = 250 * k, footH = 120 * k;
+    const rowH = Math.min(128 * k, (maxBottom - top - headH - footH) / Math.max(total, 1));
+    const h = headH + Math.max(total, 1) * rowH + footH;
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = 60 * k; ctx.shadowOffsetY = 20 * k;
+    roundRect(ctx, x, top, w, h, 64 * k);
+    ctx.fillStyle = th.light ? 'rgba(255,255,255,.62)' : 'rgba(255,255,255,.14)'; ctx.fill();
+    ctx.restore();
+    roundRect(ctx, x, top, w, h, 64 * k);
+    ctx.strokeStyle = `rgba(255,255,255,${th.light ? .8 : .22})`; ctx.lineWidth = 2 * k; ctx.stroke();
+
+    // En-tête : titre, date et anneau
+    const px = x + 60 * k;
+    ctx.fillStyle = `rgb(${ink})`; ctx.textBaseline = 'alphabetic';
+    ctx.font = font(700, 72); ctx.fillText(left ? 'À faire aujourd\'hui' : 'Journée terminée', px, top + 118 * k);
+    ctx.fillStyle = `rgba(${ink},.65)`; ctx.font = font(500, 42);
+    const dateTxt = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    ctx.fillText(dateTxt.charAt(0).toUpperCase() + dateTxt.slice(1), px, top + 178 * k);
+
+    const cx = x + w - 130 * k, cy = top + 130 * k, rr = 70 * k;
+    ctx.lineWidth = 22 * k; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(48,209,88,.28)'; ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+    if (done) { ctx.strokeStyle = '#30d158'; ctx.beginPath(); ctx.arc(cx, cy, rr, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * done / total); ctx.stroke(); }
+    ctx.fillStyle = `rgb(${ink})`; ctx.font = font(700, 50); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${done}/${total}`, cx, cy + 2 * k);
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = `rgba(${ink},.18)`; ctx.fillRect(px, top + headH - 22 * k, w - 120 * k, 2 * k);
+
+    // Lignes de tâches
+    const fs = Math.min(56, rowH / k * .44), cr = Math.min(32, rowH / k * .26) * k;
+    tasks.forEach((t, i) => {
+      const y = top + headH + i * rowH + rowH / 2, isDone = !!log[t.id];
+      const ccx = px + cr;
+      if (isDone) {
+        ctx.fillStyle = '#30d158'; ctx.beginPath(); ctx.arc(ccx, y, cr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = cr * .22; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.moveTo(ccx - cr * .42, y + cr * .02); ctx.lineTo(ccx - cr * .1, y + cr * .34); ctx.lineTo(ccx + cr * .45, y - cr * .3); ctx.stroke();
+      } else {
+        ctx.strokeStyle = `rgba(${ink},.75)`; ctx.lineWidth = 5 * k;
+        ctx.beginPath(); ctx.arc(ccx, y, cr - 2.5 * k, 0, Math.PI * 2); ctx.stroke();
+      }
+      const tx = ccx + cr + 34 * k, maxW = x + w - 60 * k - tx;
+      ctx.font = font(isDone ? 500 : 700, fs); ctx.textBaseline = 'middle';
+      const name = fitText(ctx, t.name, maxW);
+      ctx.fillStyle = isDone ? `rgba(${ink},.5)` : `rgb(${ink})`;
+      ctx.fillText(name, tx, y);
+      if (isDone) { ctx.fillStyle = `rgba(${ink},.5)`; ctx.fillRect(tx, y - 1.5 * k, ctx.measureText(name).width, 3 * k); }
+    });
+    if (!total) { ctx.fillStyle = `rgba(${ink},.6)`; ctx.font = font(500, 48); ctx.textBaseline = 'middle'; ctx.fillText('Aucune tâche', px, top + headH + rowH / 2); }
+
+    // Pied : série et restantes
+    const streak = currentStreak();
+    const foot = [left ? `${plural(left, 'tâche')} restante${left > 1 ? 's' : ''}` : 'Tout est fait ✓', streak > 0 ? `🔥 ${streak} jour${streak > 1 ? 's' : ''} de suite` : ''].filter(Boolean).join('   ·   ');
+    ctx.fillStyle = left ? (th.light ? '#c93400' : '#ffb340') : '#30d158';
+    ctx.font = font(600, 42); ctx.textBaseline = 'middle';
+    ctx.fillText(foot, px, top + h - footH / 2 - 12 * k);
+    return cv;
+  }
+  function wallpaperKey() {
+    const log = state.log[today] || {};
+    return [today, state.wpTheme, ...state.tasks.map(t => t.name + (log[t.id] ? '1' : '0'))].join('|');
+  }
+  let previewKey = '';
+  function updateWallpaperUi() {
+    const key = wallpaperKey();
+    if (key !== previewKey) {
+      previewKey = key;
+      $('wpPreview').src = drawWallpaper().toDataURL('image/jpeg', .8);
     }
-    save(); renderLockUi(); render();
+    const now = new Date();
+    $('pvTime').textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    $('pvDate').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('phone').classList.toggle('light', (THEMES[state.wpTheme] || {}).light === true);
+    const ok = state.wpKey === key;
+    $('wpStatus').className = 'row-sub ' + (ok ? 'status-ok' : 'status-old');
+    $('wpStatus').textContent = ok ? 'À jour' : 'Pas à jour, touche pour l\'appliquer';
+    $('wpAuto').checked = !!state.wpAuto;
+    $('themes').innerHTML = Object.entries(THEMES).map(([id, t]) =>
+      `<button class="swatch${id === state.wpTheme ? ' on' : ''}" data-theme="${id}" aria-label="${id}" style="background:linear-gradient(160deg,${t.bg[0]},${t.bg[1]})"></button>`).join('');
+  }
+  // Copie l'image dans le presse-papiers puis lance le raccourci qui l'applique
+  function pushWallpaper() {
+    const key = wallpaperKey();
+    const blob = new Promise(res => drawWallpaper().toBlob(res, 'image/png'));
+    if (!navigator.clipboard || !window.ClipboardItem) { hud('Utilise « Enregistrer l\'image »'); return; }
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(() => {
+      state.wpKey = key; save(); updateWallpaperUi();
+      location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(SHORTCUT);
+    }).catch(() => hud('Copie impossible, utilise « Enregistrer l\'image »'));
+  }
+  $('wpUpdate').addEventListener('click', pushWallpaper);
+  $('wpAuto').addEventListener('change', e => { state.wpAuto = e.target.checked; save(); });
+  $('themes').addEventListener('click', e => {
+    const b = e.target.closest('.swatch'); if (!b) return;
+    state.wpTheme = b.dataset.theme; save(); updateWallpaperUi();
+  });
+  $('wpSave').addEventListener('click', () => {
+    drawWallpaper().toBlob(async blob => {
+      const file = new File([blob], `ecran-taches-${today}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }, 'image/png');
+  });
+  $('wpHelpBtn').addEventListener('click', () => {
+    $('wpHelp').hidden = !$('wpHelp').hidden;
+    $('wpHelpChev').textContent = $('wpHelp').hidden ? '›' : '⌄';
   });
 
   function hud(text) {
@@ -676,6 +828,7 @@
       delete log[id];
       if (!Object.keys(log).length) delete state.log[today];
       save(); render();
+      if (state.wpAuto) pushWallpaper();
       return;
     }
     log[id] = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -690,6 +843,7 @@
       if (navigator.vibrate) navigator.vibrate(10);
       hud(pick(['+10 points', 'Une de moins !', 'Bien joué !', 'Continue comme ça !']));
     }
+    if (state.wpAuto) pushWallpaper();
   });
 
   // Formulaire d'ajout (visible en mode Modifier)
@@ -712,47 +866,6 @@
     save(); render();
   });
   $('whyInput').addEventListener('input', e => { state.why = e.target.value.trim(); save(); render(); });
-
-  // ---------- Rappels dans le calendrier (.ics) ----------
-  $('tMorning').value = state.reminders.morning;
-  $('tEvening').value = state.reminders.evening;
-  ['tMorning', 'tEvening'].forEach(id => $(id).addEventListener('change', () => {
-    state.reminders = { morning: $('tMorning').value, evening: $('tEvening').value };
-    save();
-  }));
-
-  function icsEvent(uidStr, time, title, text) {
-    const [h, m] = time.split(':');
-    const stamp = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    const url = location.href.split('#')[0];
-    return [
-      'BEGIN:VEVENT',
-      `UID:${uidStr}-${Date.now()}@taches-du-jour`,
-      `DTSTAMP:${stamp}`,
-      `DTSTART:${today.replace(/-/g, '')}T${h}${m}00`,
-      'DURATION:PT5M',
-      'RRULE:FREQ=DAILY',
-      `SUMMARY:${title}`,
-      `DESCRIPTION:${text}\\n${url}`,
-      `URL:${url}`,
-      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${title}`, 'TRIGGER:PT0M', 'END:VALARM',
-      'END:VEVENT',
-    ];
-  }
-  $('icsBtn').addEventListener('click', () => {
-    const lines = [
-      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Taches du jour//FR', 'CALSCALE:GREGORIAN',
-      ...icsEvent('matin', $('tMorning').value, '✅ Mes tâches du jour', 'Bonne journée ! Ouvre l\'appli et commence par la plus simple.'),
-      ...icsEvent('soir', $('tEvening').value, '🔥 Ne casse pas ta série', 'As-tu fait toutes tes tâches aujourd\'hui ?'),
-      'END:VCALENDAR',
-    ];
-    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'rappels-taches.ics';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-  });
 
   // ---------- Bandeau d'installation ----------
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
@@ -816,7 +929,6 @@
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
-  renderLockUi();
   render();
   showInstall();
 </script>

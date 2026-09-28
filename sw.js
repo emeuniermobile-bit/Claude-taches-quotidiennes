@@ -1,5 +1,5 @@
 // Cache minimal pour que l'app fonctionne hors connexion
-const CACHE = 'taches-v4';
+const CACHE = 'taches-v5';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -28,14 +28,3 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Toucher la notification de l'écran verrouillé ouvre l'appli
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || './';
-  e.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      const win = list.find(c => 'focus' in c);
-      return win ? win.focus() : self.clients.openWindow(url);
-    })
-  );
-});
