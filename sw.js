@@ -1,5 +1,5 @@
 // Cache minimal pour que l'app fonctionne hors connexion
-const CACHE = 'taches-v7';
+const CACHE = 'taches-v8';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {

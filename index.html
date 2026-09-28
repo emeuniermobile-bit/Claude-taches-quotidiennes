@@ -173,6 +173,9 @@
   .tag.imp2 { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); }
   .done .tag { opacity: .5; }
   .streak-tag { color: var(--orange); font-weight: 500; }
+  .late-tag { color: var(--red); font-weight: 600; }
+  .repeat-tag { color: var(--blue); }
+  .section-title.late h2 { color: var(--red); }
   .info-btn {
     flex: none; width: 30px; height: 30px; border: 0; background: none; color: var(--blue); cursor: pointer; padding: 0;
     display: grid; place-items: center; margin-right: -4px;
@@ -260,7 +263,7 @@
   .field-label { font-size: 13px; color: var(--label2); text-transform: uppercase; margin: 22px 16px 7px; }
   .segmented { display: flex; background: var(--fill); border-radius: 9px; padding: 2px; }
   .segmented button {
-    flex: 1; border: 0; background: none; border-radius: 7px; padding: 8px 4px; font-size: 15px; font-weight: 500; cursor: pointer;
+    flex: 1; border: 0; background: none; border-radius: 7px; padding: 8px 2px; font-size: 14px; white-space: nowrap; font-weight: 500; cursor: pointer;
     transition: background .2s, box-shadow .2s;
   }
   .segmented button.on { background: var(--card); box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 3px 1px rgba(0,0,0,.04); font-weight: 600; }
@@ -421,13 +424,19 @@
       <input type="text" id="taskName" placeholder="Que dois-tu faire ?" maxlength="80" enterkeyhint="done">
     </form>
 
-    <div class="field-label">Une fois par</div>
+    <div class="field-label">Quand ?</div>
     <div class="segmented" id="freqSeg">
-      <button type="button" data-v="day">Jour</button>
-      <button type="button" data-v="week">Semaine</button>
-      <button type="button" data-v="month">Mois</button>
+      <button type="button" data-v="day">Aujourd'hui</button>
+      <button type="button" data-v="week">Cette semaine</button>
+      <button type="button" data-v="month">Ce mois-ci</button>
     </div>
-    <p class="freq-help" id="freqHelp"></p>
+
+    <div class="card list" style="margin-top:14px">
+      <div class="row">
+        <div class="row-body">Répéter<div class="row-sub" id="freqHelp"></div></div>
+        <input type="checkbox" class="switch" id="repeatSwitch" role="switch" aria-label="Répéter">
+      </div>
+    </div>
 
     <div class="field-label">Importance</div>
     <div class="card list imp-options" id="impOpts">
@@ -445,27 +454,34 @@
 <script>
   const KEY = 'taches-quotidiennes-v1';
   const DEFAULT_TASKS = [
-    { name: 'Boire 1,5 L d\'eau', freq: 'day', imp: 0 },
-    { name: 'Faire 20 min de sport', freq: 'day', imp: 1 },
-    { name: 'Lire 15 minutes', freq: 'day', imp: 0 },
-    { name: 'Faire les courses', freq: 'week', imp: 1 },
-    { name: 'Payer les factures', freq: 'month', imp: 2 },
+    { name: 'Boire 1,5 L d\'eau', freq: 'day', repeat: true, imp: 0 },
+    { name: 'Faire 20 min de sport', freq: 'day', repeat: true, imp: 1 },
+    { name: 'Lire 15 minutes', freq: 'day', repeat: true, imp: 0 },
+    { name: 'Faire les courses', freq: 'week', repeat: false, imp: 1 },
+    { name: 'Payer les factures', freq: 'month', repeat: false, imp: 2 },
   ];
   const FREQ = {
-    day: { title: 'Aujourd\'hui', short: 'jour', help: 'Revient tous les jours. À refaire chaque jour.' },
-    week: { title: 'Cette semaine', short: 'semaine', help: 'Une fois dans la semaine. Revient chaque lundi.' },
-    month: { title: 'Ce mois-ci', short: 'mois', help: 'Une fois dans le mois. Revient le 1er de chaque mois.' },
+    day: { title: 'Aujourd\'hui', every: 'Tous les jours', short: 'aujourd\'hui' },
+    week: { title: 'Cette semaine', every: 'Toutes les semaines', short: 'semaine' },
+    month: { title: 'Ce mois-ci', every: 'Tous les mois', short: 'mois' },
   };
   const IMP = ['Normale', 'Importante', 'Urgente'];
 
-  // Etat : tasks [{id, name, freq: day|week|month, imp: 0|1|2}],
-  // log { 'AAAA-MM-JJ': { taskId: 'HH:MM' } } (jour où la tâche a été faite),
-  // totals { jour: nb de tâches quotidiennes ce jour-là }, seen [trophées annoncés], why, notif, notifDay
+  // Etat : tasks [{id, name, freq: day|week|month, repeat, imp: 0|1|2, start, done}]
+  //   repeat = true  : revient chaque jour / semaine / mois
+  //   repeat = false : à faire une seule fois dans la période qui contient « start » ; « done » = jour où elle a été faite
+  // log { 'AAAA-MM-JJ': { taskId: 'HH:MM' } } : historique de tout ce qui a été fait
+  // dailyIds : tâches ayant compté dans « Aujourd'hui » (pour les séries), totals { jour: nb de tâches du jour }
+  // seen [trophées annoncés], why, notif, notifDay
   function load() {
     let s = null;
     try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
-    s = s || { tasks: DEFAULT_TASKS.map(t => ({ id: uid(), ...t })), log: {} };
-    s.tasks.forEach(t => { t.freq = t.freq || 'day'; t.imp = t.imp || 0; });
+    s = s || { tasks: DEFAULT_TASKS.map(t => ({ id: uid(), start: dayKey(), ...t })), log: {} };
+    s.tasks.forEach(t => {
+      t.freq = t.freq || 'day'; t.imp = t.imp || 0; t.start = t.start || dayKey();
+      if (t.repeat === undefined) t.repeat = true; // anciennes tâches : récurrentes
+    });
+    s.dailyIds = s.dailyIds || s.tasks.filter(t => t.freq === 'day').map(t => t.id);
     s.totals = s.totals || {};
     s.seen = s.seen || null; // null = premier lancement, on n'annonce pas les anciens trophées
     s.why = s.why || '';
@@ -485,6 +501,7 @@
   }
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
   const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+  const fmtDay = (k, opts) => new Date(k + 'T12:00').toLocaleDateString('fr-FR', opts);
 
   let state = load();
   let today = dayKey();
@@ -495,36 +512,51 @@
   function periodStart(freq, d = new Date()) {
     if (freq === 'week') return addDays(d, -((d.getDay() + 6) % 7)); // lundi
     if (freq === 'month') return new Date(d.getFullYear(), d.getMonth(), 1);
-    return d;
+    return new Date(d);
   }
-  // Jour (clé) où la tâche a été faite pendant la période en cours, sinon null
+  function periodEnd(freq, d = new Date()) {
+    if (freq === 'week') return addDays(periodStart('week', d), 6); // dimanche
+    if (freq === 'month') return new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    return new Date(d);
+  }
+  // Jour (clé) où la tâche a été faite pour la période en cours, sinon null
   function doneOn(t) {
+    if (!t.repeat) return t.done || null;
     for (let d = periodStart(t.freq); dayKey(d) <= today; d = addDays(d, 1)) {
       const k = dayKey(d);
       if ((state.log[k] || {})[t.id]) return k;
     }
     return null;
   }
+  // Date limite d'une tâche unique (fin de la période où elle a été créée)
+  const deadline = t => dayKey(periodEnd(t.freq, new Date(t.start + 'T12:00')));
+  const isLate = t => !t.repeat && !t.done && deadline(t) < today;
   function daysLeft(freq) {
     const d = new Date();
     if (freq === 'week') return 7 - (d.getDay() + 6) % 7;
     if (freq === 'month') return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() - d.getDate() + 1;
     return 1;
   }
-  const byFreq = f => state.tasks.filter(t => t.freq === f);
+  // Tâches uniques faites avant la période en cours : on les retire de la liste
+  function purge() {
+    const before = state.tasks.length;
+    state.tasks = state.tasks.filter(t => t.repeat || !t.done || t.done >= dayKey(periodStart(t.freq)));
+    if (state.tasks.length !== before) save();
+  }
+  const inSection = f => state.tasks.filter(t => t.freq === f && !isLate(t));
+  const lateTasks = () => state.tasks.filter(isLate);
   // Non faites d'abord, par importance ; faites à la fin
   function sorted(tasks) {
     return tasks.map((t, i) => ({ t, i, done: !!doneOn(t) }))
-      .sort((a, b) => a.done - b.done || b.t.imp - a.t.imp || a.i - b.i).map(x => x.t);
+      .sort((a, b) => a.done - b.done || isLate(b.t) - isLate(a.t) || b.t.imp - a.t.imp || a.i - b.i).map(x => x.t);
   }
 
   // ---------- Calculs (séries basées sur les tâches quotidiennes) ----------
-  function freqOf(id) { const t = state.tasks.find(t => t.id === id); return t ? t.freq : 'day'; }
   function doneCount(k) {
-    const l = state.log[k] || {};
-    return k === today ? byFreq('day').filter(t => l[t.id]).length : Object.keys(l).filter(id => freqOf(id) === 'day').length;
+    if (k === today) return inSection('day').filter(doneOn).length;
+    return Object.keys(state.log[k] || {}).filter(id => state.dailyIds.includes(id)).length;
   }
-  function totalFor(k) { return k === today ? byFreq('day').length : (state.totals[k] ?? byFreq('day').length); }
+  function totalFor(k) { return k === today ? inSection('day').length : (state.totals[k] ?? inSection('day').length); }
   function complete(k) { const t = totalFor(k); return t > 0 && doneCount(k) >= t; }
 
   function currentStreak() {
@@ -593,8 +625,11 @@
   function taskRow(t) {
     const dk = doneOn(t), done = !!dk;
     const subs = [];
-    if (done) subs.push(t.freq === 'day' ? `Fait à ${state.log[dk][t.id]}` : `Fait ${dk === today ? 'aujourd\'hui' : new Date(dk + 'T12:00').toLocaleDateString('fr-FR', { weekday: 'long' })}`);
-    if (t.freq === 'day') { const ts = taskStreak(t.id); if (ts >= 2) subs.push(`<span class="streak-tag">${ts} jours de suite</span>`); }
+    if (done) subs.push(dk === today ? `Fait à ${(state.log[dk] || {})[t.id] || ''}` : `Fait ${fmtDay(dk, { weekday: 'long' })}`);
+    else if (isLate(t)) subs.push(`<span class="late-tag">Prévu ${t.freq === 'day' ? fmtDay(t.start, { weekday: 'long', day: 'numeric' }) : t.freq === 'week' ? 'la semaine dernière' : 'le mois dernier'}</span>`);
+    else if (!t.repeat && t.freq !== 'day') subs.push(`Avant ${t.freq === 'week' ? 'dimanche' : 'le ' + fmtDay(deadline(t), { day: 'numeric', month: 'long' })}`);
+    if (t.repeat && t.freq !== 'day') subs.push(`<span class="repeat-tag">↻ ${FREQ[t.freq].every}</span>`);
+    if (t.repeat && t.freq === 'day') { const ts = taskStreak(t.id); subs.push(ts >= 2 ? `<span class="streak-tag">↻ ${ts} jours de suite</span>` : '<span class="repeat-tag">↻ Tous les jours</span>'); }
     const tag = t.imp ? `<span class="tag imp${t.imp}">${IMP[t.imp]}</span>` : '';
     return `<li class="row imp${t.imp}${done ? ' done' : ''}${t.id === justChecked ? ' just' : ''}" data-id="${t.id}">
       <span class="check"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
@@ -605,8 +640,13 @@
 
   function renderTasks() {
     let html = '';
+    const late = lateTasks();
+    if (late.length) {
+      html += `<div class="section-title late"><h2>En retard</h2><span class="aside">${late.length}</span></div>`;
+      html += `<ul class="card list tasks">${sorted(late).map(taskRow).join('')}</ul>`;
+    }
     ['day', 'week', 'month'].forEach(f => {
-      const tasks = byFreq(f);
+      const tasks = inSection(f);
       if (!tasks.length && f !== 'day') return;
       const done = tasks.filter(doneOn).length;
       const dl = daysLeft(f);
@@ -620,14 +660,16 @@
   }
 
   function render() {
-    const daily = byFreq('day');
+    purge();
+    const daily = inSection('day');
+    daily.forEach(t => { if (!state.dailyIds.includes(t.id)) state.dailyIds.push(t.id); });
     if (state.totals[today] !== daily.length) { state.totals[today] = daily.length; save(); }
     const now = new Date();
     $('date').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
     renderTasks();
 
-    const total = daily.length, done = doneCount(today), left = total - done;
+    const total = daily.length, done = daily.filter(doneOn).length, left = total - done;
     const streak = currentStreak(), s = stats();
 
     const C = 2 * Math.PI * 56;
@@ -638,8 +680,8 @@
     $('numDone').textContent = done;
     $('numTotal').textContent = '/' + total;
 
-    $('periods').innerHTML = ['week', 'month'].filter(f => byFreq(f).length).map(f => {
-      const ts = byFreq(f), d = ts.filter(doneOn).length;
+    $('periods').innerHTML = ['week', 'month'].filter(f => inSection(f).length).map(f => {
+      const ts = inSection(f), d = ts.filter(doneOn).length;
       return `<div class="period-chip">${FREQ[f].title}<b>${d} / ${ts.length}</b></div>`;
     }).join('');
 
@@ -648,8 +690,13 @@
     const minsLeft = 24 * 60 - (hour * 60 + now.getMinutes());
     const timeLeft = minsLeft < 60 ? `${minsLeft} min` : `${Math.floor(minsLeft / 60)} h ${pad(minsLeft % 60)}`;
     const urgent = state.tasks.filter(t => t.imp === 2 && !doneOn(t));
+    const late = sorted(lateTasks());
     let msg, sub, cls = '';
-    if (!total) { msg = 'Crée ta liste'; sub = 'Touche « Nouvelle tâche » en bas de l\'écran.'; }
+    if (late.length) {
+      cls = 'alert';
+      msg = `${late.length} tâche${late.length > 1 ? 's' : ''} en retard`;
+      sub = `À rattraper : ${late[0].name}`;
+    } else if (!total) { msg = 'Crée ta liste'; sub = 'Touche « Nouvelle tâche » en bas de l\'écran.'; }
     else if (!left) {
       cls = 'win';
       msg = pick(['Journée terminée !', 'Tout est fait, bravo !', 'Objectif atteint !']);
@@ -729,17 +776,18 @@
   // ---------- Notification permanente ----------
   function notifContent() {
     const pending = sorted(state.tasks.filter(t => !doneOn(t)));
-    const dailyLeft = pending.filter(t => t.freq === 'day').length;
+    const dailyLeft = pending.filter(t => t.freq === 'day' && !isLate(t)).length;
     const allDone = state.tasks.filter(doneOn).length;
     const hasUrgent = pending.some(t => t.imp === 2);
-    const mark = t => ['⚪️', '🟠', '🔴'][t.imp];
-    const lines = pending.slice(0, 7).map(t => `${mark(t)} ${t.name}${t.freq !== 'day' ? ` (${FREQ[t.freq].short})` : ''}`);
+    const mark = t => isLate(t) ? '⏰' : ['⚪️', '🟠', '🔴'][t.imp];
+    const when = t => isLate(t) ? ' (en retard)' : t.freq !== 'day' ? ` (${FREQ[t.freq].short})` : '';
+    const lines = pending.slice(0, 7).map(t => `${mark(t)} ${t.name}${when(t)}`);
     if (pending.length > 7) lines.push(`+ ${pending.length - 7} autre${pending.length - 7 > 1 ? 's' : ''}`);
     const streak = currentStreak();
     lines.push(`✅ ${allDone} faite${allDone > 1 ? 's' : ''}${streak > 0 ? ` · 🔥 ${streak} j de suite` : ''}`);
     const title = !state.tasks.length ? '📋 Aucune tâche'
       : dailyLeft ? `${hasUrgent ? '🚨' : '📌'} ${dailyLeft} TÂCHE${dailyLeft > 1 ? 'S' : ''} À FAIRE AUJOURD'HUI`
-      : pending.length ? `✅ Journée faite · encore ${pending.length} cette semaine/mois`
+      : pending.length ? `✅ Journée faite · encore ${pending.length} à faire`
       : '🎉 Tout est fait, bravo !';
     return { title, body: lines.join('\n') };
   }
@@ -837,15 +885,16 @@
     const t = state.tasks.find(t => t.id === li.dataset.id);
     const dk = doneOn(t);
     if (dk) {
-      delete state.log[dk][t.id];
-      if (!Object.keys(state.log[dk]).length) delete state.log[dk];
+      if (state.log[dk]) { delete state.log[dk][t.id]; if (!Object.keys(state.log[dk]).length) delete state.log[dk]; }
+      delete t.done;
       save(); render();
       return;
     }
     (state.log[today] || (state.log[today] = {}))[t.id] = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    if (!t.repeat) t.done = today;
     justChecked = t.id;
     save(); render();
-    if (t.freq === 'day' && complete(today)) {
+    if (t.freq === 'day' && !isLate(t) && inSection('day').every(doneOn)) {
       if (navigator.vibrate) navigator.vibrate([25, 60, 25, 60, 70]);
       confetti();
       const st = currentStreak();
@@ -853,21 +902,25 @@
     } else {
       if (navigator.vibrate) navigator.vibrate(10);
       const pts = 10 + [0, 5, 10][t.imp];
-      hud(t.freq === 'day' ? pick([`+${pts} points`, 'Une de moins !', 'Bien joué !']) : `Fait pour ${t.freq === 'week' ? 'cette semaine' : 'ce mois-ci'} ✓ +${pts} pts`);
+      hud(t.freq === 'day' ? pick([`+${pts} points`, 'Une de moins !', 'Bien joué !']) : `C'est fait ✓ +${pts} pts`);
     }
   });
 
   // ---------- Fiche d'ajout / modification ----------
-  let editing = null, form = { freq: 'day', imp: 0 };
+  let editing = null, form = { freq: 'day', repeat: false, imp: 0 };
   function renderSheet() {
     $('freqSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === form.freq));
     $('impOpts').querySelectorAll('.row').forEach(r => r.classList.toggle('on', +r.dataset.v === form.imp));
-    $('freqHelp').textContent = FREQ[form.freq].help;
+    $('repeatSwitch').checked = form.repeat;
+    const end = periodEnd(form.freq);
+    $('freqHelp').textContent = form.repeat
+      ? { day: 'Revient tous les jours', week: 'Revient chaque lundi, à faire une fois par semaine', month: 'Revient le 1er de chaque mois, à faire une fois par mois' }[form.freq]
+      : { day: 'Une seule fois, aujourd\'hui', week: 'Une seule fois, avant dimanche', month: `Une seule fois, avant le ${end.getDate()} ${end.toLocaleDateString('fr-FR', { month: 'long' })}` }[form.freq];
     $('sheetSave').disabled = !$('taskName').value.trim();
   }
   function openSheet(id) {
     editing = id ? state.tasks.find(t => t.id === id) : null;
-    form = editing ? { freq: editing.freq, imp: editing.imp } : { freq: 'day', imp: 0 };
+    form = editing ? { freq: editing.freq, repeat: editing.repeat, imp: editing.imp } : { freq: 'day', repeat: false, imp: 0 };
     $('taskName').value = editing ? editing.name : '';
     $('sheetTitle').textContent = editing ? 'Modifier la tâche' : 'Nouvelle tâche';
     $('sheetSave').textContent = editing ? 'OK' : 'Ajouter';
@@ -887,8 +940,12 @@
   function saveSheet() {
     const name = $('taskName').value.trim();
     if (!name) return;
-    if (editing) Object.assign(editing, { name, ...form });
-    else state.tasks.push({ id: uid(), name, ...form });
+    if (editing) {
+      // Nouvelle période pour une tâche unique dont on change le délai
+      if (editing.freq !== form.freq || editing.repeat !== form.repeat) editing.start = today;
+      Object.assign(editing, { name, ...form });
+      if (editing.repeat) delete editing.done;
+    } else state.tasks.push({ id: uid(), name, start: today, ...form });
     save(); closeSheet(); render();
     hud(editing ? 'Tâche modifiée' : 'Tâche ajoutée');
   }
@@ -899,6 +956,7 @@
   $('sheetForm').addEventListener('submit', e => { e.preventDefault(); saveSheet(); });
   $('taskName').addEventListener('input', renderSheet);
   $('freqSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { form.freq = b.dataset.v; renderSheet(); } });
+  $('repeatSwitch').addEventListener('change', e => { form.repeat = e.target.checked; renderSheet(); });
   $('impOpts').addEventListener('click', e => { const r = e.target.closest('.row'); if (r) { form.imp = +r.dataset.v; renderSheet(); } });
   $('deleteBtn').addEventListener('click', () => {
     if (!editing || !confirm(`Supprimer « ${editing.name} » ?`)) return;
