@@ -226,6 +226,11 @@
   .phone::before { content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%); width: 56px; height: 16px; border-radius: 99px; background: #000; z-index: 1; }
   .themes { display: flex; justify-content: center; gap: 14px; margin-top: 22px; }
   .swatch { width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(128,128,128,.3); }
+  .swatch.photo { background-size: cover; background-position: center; display: grid; place-items: center; color: #fff; font-size: 16px; background-color: var(--fill); }
+  .photo-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+  .pill-btn { border: 0; border-radius: 999px; padding: 9px 16px; font-size: 15px; font-weight: 600; cursor: pointer; background: var(--blue); color: #fff; }
+  .pill-btn.gray { background: var(--fill); color: var(--blue); }
+  .or { text-align: center; font-size: 13px; color: var(--label2); margin: 16px 0 -8px; }
   .swatch.on { box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--blue); }
   .status-ok { color: var(--green); }
   .status-old { color: var(--orange); }
@@ -329,6 +334,12 @@
       <img id="wpPreview" alt="Aperçu de l'écran verrouillé">
       <div class="phone-clock"><span id="pvDate"></span><b id="pvTime"></b></div>
     </div>
+    <div class="photo-actions">
+      <button class="pill-btn" id="photoBtn" type="button">Choisir ma photo de fond d'écran</button>
+      <button class="pill-btn gray" id="photoDel" type="button" hidden>Retirer</button>
+    </div>
+    <input type="file" id="photoFile" accept="image/*" hidden>
+    <div class="or">ou une couleur</div>
     <div class="themes" id="themes"></div>
   </div>
   <div class="card list" style="margin-top:10px">
@@ -359,9 +370,9 @@
       <li>Renomme le raccourci exactement <b>Écran Tâches</b>.</li>
       <li>Reviens ici et touche <b>Mettre à jour l'écran verrouillé</b>. La première fois, autorise l'accès au presse-papiers (« Toujours autoriser »).</li>
     </ol>
-    <p class="muted">Astuce : le fond d'écran choisi doit être une photo, sans « effet de profondeur ». Sur Android, utilise « Enregistrer l'image » puis définis-la comme fond d'écran de verrouillage.</p>
+    <p class="muted">Pour garder ton fond d'écran, touche « Choisir ma photo de fond d'écran » et prends la même photo dans ta galerie. Désactive l'« effet de profondeur » du fond d'écran. Sur Android, utilise « Enregistrer l'image » puis définis-la comme fond d'écran de verrouillage.</p>
   </div>
-  <p class="footer-note">L'appli dessine un fond d'écran avec un grand bandeau de tes tâches (faites et à faire). Le raccourci l'applique à l'écran verrouillé.</p>
+  <p class="footer-note">Choisis la photo de ton fond d'écran actuel : l'appli y ajoute un grand bandeau de tes tâches (faites et à faire), puis le raccourci l'applique à l'écran verrouillé. Ton fond reste le même, avec le bandeau en plus.</p>
 
   <div class="section-title"><h2>Progression</h2></div>
   <div class="card level-card">
@@ -406,6 +417,7 @@
     s.seen = s.seen || null; // null = premier lancement, on n'annonce pas les anciens trophées
     s.why = s.why || '';
     s.wpTheme = s.wpTheme || 'nuit';
+    s.wpPhoto = s.wpPhoto || 0; // horodatage de la photo choisie (0 = couleur)
     s.wpAuto = !!s.wpAuto;
     return s;
   }
@@ -638,10 +650,15 @@
     const ctx = cv.getContext('2d');
     const k = W / 1179; // toutes les mesures sont pensées pour 1179 px de large
     const th = THEMES[state.wpTheme] || THEMES.nuit;
-    const ink = th.light ? '28,28,30' : '255,255,255';
+    const photo = state.wpPhoto && bgImg;
     const font = (wt, px) => `${wt} ${px * k}px -apple-system, "SF Pro Display", "Helvetica Neue", Roboto, sans-serif`;
 
-    // Fond : dégradé et halos de couleur
+    // Fond : la photo de l'utilisateur, ou un dégradé avec des halos de couleur
+    if (photo) {
+      const sc = Math.max(W / bgImg.naturalWidth, H / bgImg.naturalHeight);
+      const iw = bgImg.naturalWidth * sc, ih = bgImg.naturalHeight * sc;
+      ctx.drawImage(bgImg, (W - iw) / 2, (H - ih) / 2, iw, ih);
+    } else {
     const g = ctx.createLinearGradient(0, 0, W * .3, H); g.addColorStop(0, th.bg[0]); g.addColorStop(1, th.bg[1]);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     [[.15, .18, th.glow[0]], [.9, .55, th.glow[1]], [.2, .92, th.glow[0]]].forEach(([x, y, c]) => {
@@ -649,6 +666,18 @@
       r.addColorStop(0, c + '88'); r.addColorStop(1, c + '00');
       ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
     });
+    }
+    // Version très réduite du fond : sert au flou du bandeau et à mesurer la luminosité
+    const small = blurred(cv);
+    const sctx = small.getContext('2d', { willReadFrequently: true });
+    const lum = (y0, y1) => {
+      const d = sctx.getImageData(0, Math.floor(small.height * y0), small.width, Math.max(1, Math.floor(small.height * (y1 - y0)))).data;
+      let sum = 0; for (let i = 0; i < d.length; i += 4) sum += .2126 * d[i] + .7152 * d[i + 1] + .0722 * d[i + 2];
+      return sum / (d.length / 4) / 255;
+    };
+    const light = photo ? lum(.38, .8) > .62 : th.light;
+    drawWallpaper.clockDark = photo ? lum(.08, .3) > .7 : th.light;
+    const ink = light ? '28,28,30' : '255,255,255';
 
     // Bandeau : sous l'horloge, au-dessus des boutons du bas
     const tasks = state.tasks, log = state.log[today] || {};
@@ -661,10 +690,20 @@
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,.25)'; ctx.shadowBlur = 60 * k; ctx.shadowOffsetY = 20 * k;
     roundRect(ctx, x, top, w, h, 64 * k);
-    ctx.fillStyle = th.light ? 'rgba(255,255,255,.62)' : 'rgba(255,255,255,.14)'; ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.01)'; ctx.fill();
+    ctx.restore();
+    ctx.save();
+    roundRect(ctx, x, top, w, h, 64 * k); ctx.clip();
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    // Agrandissement en deux temps pour un flou bien lisse, façon verre iOS
+    const mid = document.createElement('canvas'); mid.width = small.width * 6; mid.height = small.height * 6;
+    const mctx = mid.getContext('2d'); mctx.imageSmoothingQuality = 'high'; mctx.drawImage(small, 0, 0, mid.width, mid.height);
+    ctx.drawImage(mid, 0, 0, W, H);
+    ctx.fillStyle = photo ? (light ? 'rgba(255,255,255,.45)' : 'rgba(0,0,0,.28)') : (light ? 'rgba(255,255,255,.62)' : 'rgba(255,255,255,.14)');
+    ctx.fillRect(x, top, w, h);
     ctx.restore();
     roundRect(ctx, x, top, w, h, 64 * k);
-    ctx.strokeStyle = `rgba(255,255,255,${th.light ? .8 : .22})`; ctx.lineWidth = 2 * k; ctx.stroke();
+    ctx.strokeStyle = `rgba(255,255,255,${light ? .8 : .22})`; ctx.lineWidth = 2 * k; ctx.stroke();
 
     // En-tête : titre, date et anneau
     const px = x + 60 * k;
@@ -709,14 +748,40 @@
     // Pied : série et restantes
     const streak = currentStreak();
     const foot = [left ? `${plural(left, 'tâche')} restante${left > 1 ? 's' : ''}` : 'Tout est fait ✓', streak > 0 ? `🔥 ${streak} jour${streak > 1 ? 's' : ''} de suite` : ''].filter(Boolean).join('   ·   ');
-    ctx.fillStyle = left ? (th.light ? '#c93400' : '#ffb340') : '#30d158';
+    ctx.fillStyle = left ? (light ? '#c93400' : '#ffb340') : (light ? '#1f9d45' : '#30d158');
     ctx.font = font(600, 42); ctx.textBaseline = 'middle';
     ctx.fillText(foot, px, top + h - footH / 2 - 12 * k);
     return cv;
   }
+  // Réduit l'image par moitiés successives puis applique un flou « boîte » sur la petite version
+  function blurred(src) {
+    let c = src;
+    while (c.width / 2 >= src.width / 24) {
+      const n = document.createElement('canvas'); n.width = Math.ceil(c.width / 2); n.height = Math.ceil(c.height / 2);
+      const nctx = n.getContext('2d'); nctx.imageSmoothingQuality = 'high'; nctx.drawImage(c, 0, 0, n.width, n.height);
+      c = n;
+    }
+    const w = c.width, h = c.height, cctx = c.getContext('2d', { willReadFrequently: true });
+    const img = cctx.getImageData(0, 0, w, h), d = img.data, tmp = new Float32Array(d.length), r = 2;
+    for (let pass = 0; pass < 3; pass++) {
+      for (const horiz of [true, false]) {
+        const [len, lines] = horiz ? [w, h] : [h, w];
+        for (let l = 0; l < lines; l++) for (let i = 0; i < len; i++) {
+          let sr = 0, sg = 0, sb = 0, n = 0;
+          for (let j = Math.max(0, i - r); j <= Math.min(len - 1, i + r); j++) {
+            const o = 4 * (horiz ? l * w + j : j * w + l); sr += d[o]; sg += d[o + 1]; sb += d[o + 2]; n++;
+          }
+          const o = 4 * (horiz ? l * w + i : i * w + l); tmp[o] = sr / n; tmp[o + 1] = sg / n; tmp[o + 2] = sb / n;
+        }
+        for (let o = 0; o < d.length; o += 4) { d[o] = tmp[o]; d[o + 1] = tmp[o + 1]; d[o + 2] = tmp[o + 2]; }
+      }
+    }
+    cctx.putImageData(img, 0, 0);
+    return c;
+  }
   function wallpaperKey() {
     const log = state.log[today] || {};
-    return [today, state.wpTheme, ...state.tasks.map(t => t.name + (log[t.id] ? '1' : '0'))].join('|');
+    return [today, state.wpPhoto && bgImg ? 'photo' + state.wpPhoto : state.wpTheme, ...state.tasks.map(t => t.name + (log[t.id] ? '1' : '0'))].join('|');
   }
   let previewKey = '';
   function updateWallpaperUi() {
@@ -728,13 +793,17 @@
     const now = new Date();
     $('pvTime').textContent = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     $('pvDate').textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-    $('phone').classList.toggle('light', (THEMES[state.wpTheme] || {}).light === true);
+    $('phone').classList.toggle('light', !!drawWallpaper.clockDark);
     const ok = state.wpKey === key;
     $('wpStatus').className = 'row-sub ' + (ok ? 'status-ok' : 'status-old');
     $('wpStatus').textContent = ok ? 'À jour' : 'Pas à jour, touche pour l\'appliquer';
     $('wpAuto').checked = !!state.wpAuto;
-    $('themes').innerHTML = Object.entries(THEMES).map(([id, t]) =>
-      `<button class="swatch${id === state.wpTheme ? ' on' : ''}" data-theme="${id}" aria-label="${id}" style="background:linear-gradient(160deg,${t.bg[0]},${t.bg[1]})"></button>`).join('');
+    const usePhoto = !!(state.wpPhoto && bgImg);
+    $('themes').innerHTML = (bgImg ? `<button class="swatch photo${usePhoto ? ' on' : ''}" data-theme="photo" aria-label="Ma photo" style="background-image:url(${bgImg.src})"></button>` : '') +
+      Object.entries(THEMES).map(([id, t]) =>
+      `<button class="swatch${!usePhoto && id === state.wpTheme ? ' on' : ''}" data-theme="${id}" aria-label="${id}" style="background:linear-gradient(160deg,${t.bg[0]},${t.bg[1]})"></button>`).join('');
+    $('photoBtn').textContent = bgImg ? 'Changer de photo' : 'Choisir ma photo de fond d\'écran';
+    $('photoDel').hidden = !bgImg;
   }
   // Copie l'image dans le presse-papiers puis lance le raccourci qui l'applique
   function pushWallpaper() {
@@ -750,7 +819,57 @@
   $('wpAuto').addEventListener('change', e => { state.wpAuto = e.target.checked; save(); });
   $('themes').addEventListener('click', e => {
     const b = e.target.closest('.swatch'); if (!b) return;
-    state.wpTheme = b.dataset.theme; save(); updateWallpaperUi();
+    if (b.dataset.theme === 'photo') state.wpPhoto = state.wpPhoto || Date.now();
+    else { state.wpTheme = b.dataset.theme; state.wpPhoto = 0; }
+    save(); updateWallpaperUi();
+  });
+
+  // Photo de fond d'écran : gardée dans IndexedDB (trop grosse pour localStorage)
+  let bgImg = null, bgUrl = null;
+  function idb() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('taches-du-jour', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await idb();
+    return new Promise(res => { const q = db.transaction('kv').objectStore('kv').get(key); q.onsuccess = () => res(q.result); q.onerror = () => res(null); });
+  }
+  async function idbSet(key, val) {
+    const db = await idb();
+    return new Promise(res => {
+      const tx = db.transaction('kv', 'readwrite');
+      val == null ? tx.objectStore('kv').delete(key) : tx.objectStore('kv').put(val, key);
+      tx.oncomplete = res; tx.onerror = res;
+    });
+  }
+  async function loadPhoto() {
+    let blob = null;
+    try { blob = await idbGet('photo'); } catch (e) {}
+    if (bgUrl) URL.revokeObjectURL(bgUrl);
+    bgImg = null; bgUrl = null;
+    if (blob) {
+      bgUrl = URL.createObjectURL(blob);
+      const img = new Image(); img.src = bgUrl;
+      try { await img.decode(); bgImg = img; } catch (e) {}
+    }
+    previewKey = ''; updateWallpaperUi();
+  }
+  $('photoBtn').addEventListener('click', () => $('photoFile').click());
+  $('photoFile').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    await idbSet('photo', file);
+    state.wpPhoto = Date.now(); save();
+    await loadPhoto();
+    hud('Photo enregistrée');
+  });
+  $('photoDel').addEventListener('click', async () => {
+    await idbSet('photo', null);
+    state.wpPhoto = 0; save();
+    await loadPhoto();
   });
   $('wpSave').addEventListener('click', () => {
     drawWallpaper().toBlob(async blob => {
@@ -930,6 +1049,7 @@
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 
   render();
+  loadPhoto();
   showInstall();
 </script>
 </body>
